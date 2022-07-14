@@ -1,0 +1,7 @@
+[
+{
+  "directory": "/home/jialin/VSC_Projects/Opencv/build",
+  "command": "/usr/bin/g++   -isystem /usr/local/include/opencv4  -g   -std=gnu++11 -o CMakeFiles/DisplayImage.dir/opencv_test.cpp.o -c /home/jialin/VSC_Projects/Opencv/opencv_test.cpp",
+  "file": "/home/jialin/VSC_Projects/Opencv/opencv_test.cpp"
+}
+]

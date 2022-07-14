@@ -1,0 +1,3 @@
+/home/jialin/VSC_Projects/Opencv/build/CMakeFiles/rebuild_cache.dir
+/home/jialin/VSC_Projects/Opencv/build/CMakeFiles/DisplayImage.dir
+/home/jialin/VSC_Projects/Opencv/build/CMakeFiles/edit_cache.dir
