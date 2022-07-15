@@ -7,8 +7,8 @@ using namespace cv;
 
 int main(){
     float f;
+    double d;
     ifstream inFile;
-
     inFile.open("/media/jialin/045E58135E57FC3C/UBUNTU/KITTI360/calibration/perspective.txt");
     if(!inFile){
         cout<<"unable to open file" <<endl;
@@ -28,6 +28,11 @@ int main(){
             target_string=inLine.substr(11);
             break;
         }
+    }
+
+    stringstream ss(target_string);
+    while(ss>>d){
+        cout<<d<<endl;
     }
 
 
