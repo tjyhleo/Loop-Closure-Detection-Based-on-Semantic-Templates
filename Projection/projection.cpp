@@ -1,205 +1,135 @@
 #include <iostream>
 #include <fstream>
 #include <opencv4/opencv2/core.hpp>
+// #include <opencv4/opencv2/opencv.hpp>
+// #include <opencv4/opencv2/highgui/highgui.hpp>
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_types.h>
+#include <pcl/io/ply_io.h>
 
 using namespace std;
 using namespace cv;
 
-int main(){
-    float f;
+Mat txtRead(const string filePath, const string keyWord){
     double d;
+    Mat outputMat;
     ifstream inFile;
-    
-    ////////////////////////////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////intrinsic matrix///////////////////////////////////////
-    /////////////////////////////////////////////////////////////////////////////////////
-    inFile.open("/media/jialin/045E58135E57FC3C/UBUNTU/KITTI360/calibration/perspective.txt");
+    string kitti360 = "/media/jialin/045E58135E57FC3C/UBUNTU/KITTI360/";
+    string path = kitti360 + filePath;
+    string::size_type idx;
+    string target_string;
+    int strStart;
+    int shape1;
+    int shape2;
+    if(keyWord=="P_rect_00"){
+        strStart = 11;
+        shape1 = 3;
+        shape2 = 4;
+    }
+    else if(keyWord=="image_00"){
+        strStart = 10;
+        shape1 = 3;
+        shape2 = 4;
+    }
+    else if(keyWord=="R_rect_00"){
+        strStart = 11;
+        shape1 = 3;
+        shape2 = 3;
+    }
+    else{
+        strStart = 2;
+        shape1 = 3;
+        shape2 = 4;
+    }
+
+    inFile.open(path);
     if(!inFile){
-        cout<<"unable to open file" <<endl;
+        cout<<"unable to open file: "<<path <<endl;
         exit(1);
     }
 
-    string::size_type idx;
-    string kw="P_rect_00:";
-    string target_string;
     while(!inFile.eof()){
         string inLine;
         getline(inFile, inLine,'\n');
-        // strVec.push_back(inLine);
-        idx=inLine.find(kw);
+        idx=inLine.find(keyWord);
         if(idx!=string::npos){
-            target_string=inLine.substr(11);
+            target_string=inLine.substr(strStart);
             break;
         }
     }
 
-    
-    vector<double> intrin_vec;
+    vector<double> txtVec;
     stringstream ss(target_string);
     while(ss>>d){
-        intrin_vec.push_back(d);
+        txtVec.push_back(d);
     }
-
-    Mat intrinsic_Mat(intrin_vec);
-    intrinsic_Mat = intrinsic_Mat.reshape(1,(3,4));
-    // cout <<intrinsic_Mat.size<<endl;
-    // Mat Intrinsic_Mat = intrinsic_Mat.colRange(1,3).clone();
-    Mat Intrinsic_Mat = Mat::zeros(3,3,CV_64F);
-    for (int i=0; i<3; i++){
-        for (int j=0; j<3; j++){
-            Intrinsic_Mat.at<double>(i,j) = intrinsic_Mat.at<double>(i,j);
-        }
-    }
-    cout << Intrinsic_Mat << endl;
-
-    inFile.close();
-
-
-    ////////////////////////////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////camera_to_pose matrix///////////////////////////////////////
-    /////////////////////////////////////////////////////////////////////////////////////
-    inFile.open("/media/jialin/045E58135E57FC3C/UBUNTU/KITTI360/calibration/calib_cam_to_pose.txt");
-    if(!inFile){
-        cout<<"unable to open file" <<endl;
+    if(txtVec.size()==0){
+        cout<<"target line not found in "<<filePath<<endl;
         exit(1);
     }
 
-    // string::size_type idx2;
-    kw="image_00:";
-    // string target_string;
-    while(!inFile.eof()){
-        string inLine;
-        getline(inFile, inLine,'\n');
-        // strVec.push_back(inLine);
-        idx=inLine.find(kw);
-        if(idx!=string::npos){
-            target_string=inLine.substr(10);
-            break;
+    Mat txtMat(txtVec);
+    txtMat = txtMat.reshape(1,(shape2, shape1));
+
+    if(keyWord=="P_rect_00"){
+        outputMat = txtMat.colRange(0,3).rowRange(0,3);
+    }
+    else if(keyWord=="image_00"){
+        Mat addedLine = (Mat_<double>(1,4) << 0,0,0,1);
+        // Mat addedLine(1,4, CV_64F, (0,0,0,1));
+        // vector<double> addedLine = {0,0,0,1};
+        txtMat.push_back(addedLine);
+        outputMat = txtMat;
+    }
+    else if(keyWord=="R_rect_00"){
+        outputMat = Mat::eye(4,4,CV_64F);
+        // outputMat.colRange(0,3).rowRange(0,3) = txtMat;
+        for (int i=0; i<3; i++){
+            for (int j=0; j<3; j++){
+                outputMat.at<double>(i,j) = txtMat.at<double>(i,j);
+            }
         }
     }
-    target_string += "0 0 0 1"; 
-    // cout<<target_string<<endl;
-    vector<double> cam2pose_vec;
-    // stringstream ss(target_string);
-    ss.clear();
-    ss.str(target_string);
-    while(ss>>d){
-        cam2pose_vec.push_back(d);
+    else{
+        // Mat addedLine = (Mat_<double>(4,1) << 0,0,0,1);
+        Mat addedLine = (Mat_<double>(1,4) << 0,0,0,1);
+        txtMat.push_back(addedLine);
+        outputMat = txtMat;
     }
-
-    // cout<<cam2pose_vec[-1]<<endl;
-    Mat cam2pose_Mat(cam2pose_vec);
-    cam2pose_Mat = cam2pose_Mat.reshape(1,(4,4));
-    cout << cam2pose_Mat << endl;
-
-    inFile.close();
-
-
-    //////////////////////////////////////////////////////////////////////
-    ////////////////////////////////rectification_matrix//////////////////
-    //////////////////////////////////////////////////////////////////////
-    inFile.open("/media/jialin/045E58135E57FC3C/UBUNTU/KITTI360/calibration/perspective.txt");
-    if(!inFile){
-        cout<<"unable to open file" <<endl;
-        exit(1);
-    }
-
-    // string::size_type idx2;
-    kw="R_rect_00:";
-    // string target_string;
-    while(!inFile.eof()){
-        string inLine;
-        getline(inFile, inLine,'\n');
-        // strVec.push_back(inLine);
-        idx=inLine.find(kw);
-        if(idx!=string::npos){
-            target_string=inLine.substr(11);
-            break;
-        }
-    }
-    // cout<<target_string<<endl;
-    vector<double> rect_vec;
-    // stringstream ss(target_string);
-    ss.clear();
-    ss.str(target_string);
-    while(ss>>d){
-        rect_vec.push_back(d);
-    }
-
-    // cout<<cam2pose_vec.size()<<endl;
-    Mat rect_Mat(rect_vec);
-    rect_Mat = rect_Mat.reshape(1,(3,3));
-
-    Mat Rect_Mat = Mat::eye(4,4,CV_64F);
-    for (int i=0; i<3; i++){
-        for (int j=0; j<3; j++){
-            Rect_Mat.at<double>(i,j) = rect_Mat.at<double>(i,j);
-        }
-    }
-    cout << Rect_Mat << endl;
-
-    inFile.close();
-
-    ///////////////////////////////////////////////////////////////////////////////////////
-    /////////////////////////////////////////////pose//////////////////////////////////////
-    inFile.open("/media/jialin/045E58135E57FC3C/UBUNTU/KITTI360/data_poses/2013_05_28_drive_0007_sync/poses.txt");
-    if(!inFile){
-        cout<<"unable to open file" <<endl;
-        exit(1);
-    }
-
-    // string::size_type idx2;
-    kw="1";
-    // string target_string;
-    while(!inFile.eof()){
-        string inLine;
-        getline(inFile, inLine,'\n');
-        // strVec.push_back(inLine);
-        idx=inLine.find(kw);
-        if(idx!=string::npos){
-            target_string=inLine.substr(2);
-            break;
-        }
-    }
-    // cout<<target_string<<endl;
-    target_string += " 0 0 0 1";
-    vector<double> pose_vec;
-    // stringstream ss(target_string);
-    ss.clear();
-    ss.str(target_string);
-    while(ss>>d){
-        pose_vec.push_back(d);
-    }
-
-    // cout<<cam2pose_vec.size()<<endl;
-    Mat pose_Mat(pose_vec);
-    pose_Mat = pose_Mat.reshape(1,(4,4));
-
     
-    cout << pose_Mat << endl;
+    cout << outputMat << endl;
+
+    inFile.close();
+
+    return outputMat;
+
+}
 
 
+int main(){
+    Mat intrinsicMat = txtRead("calibration/perspective.txt", "P_rect_00");
+    Mat cam2poseMat = txtRead("calibration/calib_cam_to_pose.txt", "image_00");
+    Mat rectMat = txtRead("calibration/perspective.txt", "R_rect_00");
+    Mat rectInv = rectMat.inv();
     ////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////cam2world//////////////////////////////////////
-    Mat rectInv = Rect_Mat.inv();
-    // cout<<pose_Mat.size << endl;
-    // cout<<cam2pose_Mat.channels()<<endl;
-    // Mat cam2world = pose_Mat * cam2pose_Mat;
-    Mat cam2world = (pose_Mat * cam2pose_Mat) * rectInv;
+    Mat poseMat = txtRead("data_poses/2013_05_28_drive_0007_sync/poses.txt","1");
+    Mat cam2world = (poseMat * cam2poseMat) * rectInv;
 
     cout<<cam2world<<endl;
 
     //////////////////////////////////////////////////////////////////////////////////
     ///////////////////////world2cam/////////////////////////////////////////////////////
-    Mat cam2world_capped = cam2world.rowRange(0,3).clone();
-    cout<<cam2world_capped<<endl;
-    Mat R = cam2world_capped.colRange(0,3).clone();
-    Mat t = cam2world_capped.col(3).clone();
-    cout<<R.t()<<endl;
-    cout<<t.t()<<endl;
-    
-
-    inFile.close();
+    // Mat cam2world_capped = cam2world.rowRange(0,3).clone();
+    // cout<<cam2world_capped<<endl;
+    Mat R = cam2world.colRange(0,3).rowRange(0,3);
+    Mat t = cam2world.col(3).rowRange(0,3);
+    // cout<<R.t()<<endl;
+    double p[3] = {3.111234,2.44444,5.22223};
+    Mat point_world=Mat(3,1,CV_64F,p);
+    Mat point_cam = R.t() * (point_world - t);
+    Mat point_proj = intrinsicMat * point_cam;
+    cout<<point_proj<<endl;
 
     return 0;
 }

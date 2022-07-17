@@ -6,7 +6,8 @@
                 "${workspaceFolder}/**",
                 "/usr/local/include",
                 "/usr/local/include/opencv4",
-                "/usr/include/pcl-1.8"
+                "/usr/include/pcl-1.8",
+                "/usr/include/eigen3"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

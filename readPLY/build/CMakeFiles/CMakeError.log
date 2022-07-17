@@ -1,22 +1,22 @@
 Determining if the pthread_create exist failed with the following output:
 Change Dir: /home/jialin/Documents/VSC_Projects/readPLY/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_26771/fast"
-/usr/bin/make -f CMakeFiles/cmTC_26771.dir/build.make CMakeFiles/cmTC_26771.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_b48fe/fast"
+/usr/bin/make -f CMakeFiles/cmTC_b48fe.dir/build.make CMakeFiles/cmTC_b48fe.dir/build
 make[1]: Entering directory '/home/jialin/Documents/VSC_Projects/readPLY/build/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_26771.dir/CheckSymbolExists.c.o
-/usr/bin/cc    -o CMakeFiles/cmTC_26771.dir/CheckSymbolExists.c.o   -c /home/jialin/Documents/VSC_Projects/readPLY/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
-Linking C executable cmTC_26771
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_26771.dir/link.txt --verbose=1
-/usr/bin/cc      -rdynamic CMakeFiles/cmTC_26771.dir/CheckSymbolExists.c.o  -o cmTC_26771 
-CMakeFiles/cmTC_26771.dir/CheckSymbolExists.c.o: In function `main':
+Building C object CMakeFiles/cmTC_b48fe.dir/CheckSymbolExists.c.o
+/usr/bin/gcc    -o CMakeFiles/cmTC_b48fe.dir/CheckSymbolExists.c.o   -c /home/jialin/Documents/VSC_Projects/readPLY/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTC_b48fe
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_b48fe.dir/link.txt --verbose=1
+/usr/bin/gcc      -rdynamic CMakeFiles/cmTC_b48fe.dir/CheckSymbolExists.c.o  -o cmTC_b48fe 
+CMakeFiles/cmTC_b48fe.dir/CheckSymbolExists.c.o: In function `main':
 CheckSymbolExists.c:(.text+0x1b): undefined reference to `pthread_create'
 collect2: error: ld returned 1 exit status
-CMakeFiles/cmTC_26771.dir/build.make:97: recipe for target 'cmTC_26771' failed
-make[1]: *** [cmTC_26771] Error 1
+CMakeFiles/cmTC_b48fe.dir/build.make:97: recipe for target 'cmTC_b48fe' failed
+make[1]: *** [cmTC_b48fe] Error 1
 make[1]: Leaving directory '/home/jialin/Documents/VSC_Projects/readPLY/build/CMakeFiles/CMakeTmp'
-Makefile:126: recipe for target 'cmTC_26771/fast' failed
-make: *** [cmTC_26771/fast] Error 2
+Makefile:126: recipe for target 'cmTC_b48fe/fast' failed
+make: *** [cmTC_b48fe/fast] Error 2
 
 File /home/jialin/Documents/VSC_Projects/readPLY/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
 /* */
@@ -36,20 +36,20 @@ int main(int argc, char** argv)
 Determining if the function pthread_create exists in the pthreads failed with the following output:
 Change Dir: /home/jialin/Documents/VSC_Projects/readPLY/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_e4658/fast"
-/usr/bin/make -f CMakeFiles/cmTC_e4658.dir/build.make CMakeFiles/cmTC_e4658.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_b2f49/fast"
+/usr/bin/make -f CMakeFiles/cmTC_b2f49.dir/build.make CMakeFiles/cmTC_b2f49.dir/build
 make[1]: Entering directory '/home/jialin/Documents/VSC_Projects/readPLY/build/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_e4658.dir/CheckFunctionExists.c.o
-/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=pthread_create   -o CMakeFiles/cmTC_e4658.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-3.10/Modules/CheckFunctionExists.c
-Linking C executable cmTC_e4658
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_e4658.dir/link.txt --verbose=1
-/usr/bin/cc  -DCHECK_FUNCTION_EXISTS=pthread_create    -rdynamic CMakeFiles/cmTC_e4658.dir/CheckFunctionExists.c.o  -o cmTC_e4658 -lpthreads 
+Building C object CMakeFiles/cmTC_b2f49.dir/CheckFunctionExists.c.o
+/usr/bin/gcc   -DCHECK_FUNCTION_EXISTS=pthread_create   -o CMakeFiles/cmTC_b2f49.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-3.10/Modules/CheckFunctionExists.c
+Linking C executable cmTC_b2f49
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_b2f49.dir/link.txt --verbose=1
+/usr/bin/gcc  -DCHECK_FUNCTION_EXISTS=pthread_create    -rdynamic CMakeFiles/cmTC_b2f49.dir/CheckFunctionExists.c.o  -o cmTC_b2f49 -lpthreads 
 /usr/bin/ld: cannot find -lpthreads
 collect2: error: ld returned 1 exit status
-CMakeFiles/cmTC_e4658.dir/build.make:97: recipe for target 'cmTC_e4658' failed
-make[1]: *** [cmTC_e4658] Error 1
+CMakeFiles/cmTC_b2f49.dir/build.make:97: recipe for target 'cmTC_b2f49' failed
+make[1]: *** [cmTC_b2f49] Error 1
 make[1]: Leaving directory '/home/jialin/Documents/VSC_Projects/readPLY/build/CMakeFiles/CMakeTmp'
-Makefile:126: recipe for target 'cmTC_e4658/fast' failed
-make: *** [cmTC_e4658/fast] Error 2
+Makefile:126: recipe for target 'cmTC_b2f49/fast' failed
+make: *** [cmTC_b2f49/fast] Error 2
 
 

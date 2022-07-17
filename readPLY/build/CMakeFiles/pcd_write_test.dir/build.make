@@ -60,15 +60,15 @@ include CMakeFiles/pcd_write_test.dir/flags.make
 CMakeFiles/pcd_write_test.dir/readPLY.cpp.o: CMakeFiles/pcd_write_test.dir/flags.make
 CMakeFiles/pcd_write_test.dir/readPLY.cpp.o: ../readPLY.cpp
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/jialin/Documents/VSC_Projects/readPLY/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/pcd_write_test.dir/readPLY.cpp.o"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/pcd_write_test.dir/readPLY.cpp.o -c /home/jialin/Documents/VSC_Projects/readPLY/readPLY.cpp
+	/usr/bin/g++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/pcd_write_test.dir/readPLY.cpp.o -c /home/jialin/Documents/VSC_Projects/readPLY/readPLY.cpp
 
 CMakeFiles/pcd_write_test.dir/readPLY.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/pcd_write_test.dir/readPLY.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/jialin/Documents/VSC_Projects/readPLY/readPLY.cpp > CMakeFiles/pcd_write_test.dir/readPLY.cpp.i
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/jialin/Documents/VSC_Projects/readPLY/readPLY.cpp > CMakeFiles/pcd_write_test.dir/readPLY.cpp.i
 
 CMakeFiles/pcd_write_test.dir/readPLY.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/pcd_write_test.dir/readPLY.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/jialin/Documents/VSC_Projects/readPLY/readPLY.cpp -o CMakeFiles/pcd_write_test.dir/readPLY.cpp.s
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/jialin/Documents/VSC_Projects/readPLY/readPLY.cpp -o CMakeFiles/pcd_write_test.dir/readPLY.cpp.s
 
 CMakeFiles/pcd_write_test.dir/readPLY.cpp.o.requires:
 
@@ -90,6 +90,14 @@ pcd_write_test_EXTERNAL_OBJECTS =
 
 pcd_write_test: CMakeFiles/pcd_write_test.dir/readPLY.cpp.o
 pcd_write_test: CMakeFiles/pcd_write_test.dir/build.make
+pcd_write_test: /usr/local/lib/libopencv_gapi.so.4.5.5
+pcd_write_test: /usr/local/lib/libopencv_highgui.so.4.5.5
+pcd_write_test: /usr/local/lib/libopencv_ml.so.4.5.5
+pcd_write_test: /usr/local/lib/libopencv_objdetect.so.4.5.5
+pcd_write_test: /usr/local/lib/libopencv_photo.so.4.5.5
+pcd_write_test: /usr/local/lib/libopencv_stitching.so.4.5.5
+pcd_write_test: /usr/local/lib/libopencv_video.so.4.5.5
+pcd_write_test: /usr/local/lib/libopencv_videoio.so.4.5.5
 pcd_write_test: /usr/lib/x86_64-linux-gnu/libboost_system.so
 pcd_write_test: /usr/lib/x86_64-linux-gnu/libboost_filesystem.so
 pcd_write_test: /usr/lib/x86_64-linux-gnu/libboost_thread.so
@@ -232,6 +240,13 @@ pcd_write_test: /usr/lib/x86_64-linux-gnu/libvtkTestingRendering-6.3.so.6.3.0
 pcd_write_test: /usr/lib/x86_64-linux-gnu/libvtkViewsContext2D-6.3.so.6.3.0
 pcd_write_test: /usr/lib/x86_64-linux-gnu/libvtkViewsGeovis-6.3.so.6.3.0
 pcd_write_test: /usr/lib/x86_64-linux-gnu/libvtkWrappingJava-6.3.so.6.3.0
+pcd_write_test: /usr/local/lib/libopencv_imgcodecs.so.4.5.5
+pcd_write_test: /usr/local/lib/libopencv_dnn.so.4.5.5
+pcd_write_test: /usr/local/lib/libopencv_calib3d.so.4.5.5
+pcd_write_test: /usr/local/lib/libopencv_features2d.so.4.5.5
+pcd_write_test: /usr/local/lib/libopencv_flann.so.4.5.5
+pcd_write_test: /usr/local/lib/libopencv_imgproc.so.4.5.5
+pcd_write_test: /usr/local/lib/libopencv_core.so.4.5.5
 pcd_write_test: /usr/lib/x86_64-linux-gnu/libpcl_common.so
 pcd_write_test: /usr/lib/x86_64-linux-gnu/libpcl_octree.so
 pcd_write_test: /usr/lib/x86_64-linux-gnu/libpcl_io.so
