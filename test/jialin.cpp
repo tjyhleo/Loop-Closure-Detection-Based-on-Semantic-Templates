@@ -1,0 +1,103 @@
+#include <iostream>
+#include <fstream>
+#include <opencv4/opencv2/core.hpp>
+
+using namespace std;
+using namespace cv;
+
+int main(){
+    ifstream inFile;
+    string kitti360 = "/media/jialin/045E58135E57FC3C/UBUNTU/KITTI360/";
+    inFile.open(kitti360+"data_poses/2013_05_28_drive_0007_sync/poses.txt");
+    if(!inFile){
+        cout<<"unable to open file: poses.txt"<<endl;
+        exit(1);
+    }
+
+    // while(!inFile.eof()){
+    string inLine;
+    for(int index=0; index<5; index++){
+        getline(inFile, inLine,'\n');
+        // cout << inLine <<endl;
+        // stringstream strs(inLine);
+    }
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+    //这个就不用解释了
+    
+    // CV_8U 8位无符号整数 （0…..255）
+    // CV_8S 8 位符号整数 （-128…..127）
+    // CV_16U 16 位无符号整数 （0……65535）
+    // CV_16S 16 位符号整数 （-32768…..32767）
+    // CV_32S 32 位符号整数 （-2147483648……2147483647）
+    // CV_32F 32 位浮点数 （-FLT_MAX ………FLT_MAX，INF，NAN)
+    // CV_64F 64 位浮点数 （-DBL_MAX ……….DBL_MAX，INF，NAN)
+
+
+    Mat E1 = Mat::eye(4, 4, CV_64F);
+    Mat E2 = Mat::ones(4, 4, CV_64F);
+    Mat E3 = Mat::zeros(4, 4, CV_64F);
+
+    //这个我不理解，真的不理解
+    Mat m1(((5, 2), CV_32F, Scalar(1,255,0)));
+    //cout: [1;255;0;0], scalar里最多有四个数字，类型不限，输出总会是4x1的矩阵，一个channel，如果输入少于4个就用0补足
+    //至于定义的size根本没用，输出总会是4x1的矩阵
+
+    
+    Mat m2(5, 2, CV_32FC2, Scalar(1,255,0));
+    //输出是5x2的矩阵，channel数和设定的一样，e.g. CV_32F 或者 CV_32FC1 就是1个channel，全是1
+    //如果CV_32FC2，那就是两个channel，还是5x2的矩阵，每个element是 1,255。三个channel的就不用说了吧
+
+
+    Mat m3 = (Mat_<double>(1,3)<<1,2,3,4);
+    //输出是1x3的矩阵，channel为1， [1,2,3], 输入数量大于矩阵大小时，后面的忽略。如果输入数量不足，则会用0补足
+
+
+    int a[2][4] = {1,2,3,4,5};
+    //cout<<a<<endl;输出的是地址， *a也是地址
+    //输入的数据可以比数组size小，但不可以比数组size大
+    //因我我没发输出他，所以不知道输出什么样
+    Mat m4(2,3,CV_32S,a);
+    //输出就是2x3的矩阵,1 channel,当a比矩阵size大时，多出的部分被忽略，比矩阵size小时，剩余会用0补足
+
+
+    //用create创建矩阵
+    Mat m5;
+    m5.create(4,4,CV_8UC2);
+
+
+    Scalar s(2,2,2,2);
+    //输出就是[2,2,2,2]
+
+
+    //这种是用指针，但是在这里我懒得演示了
+    // IplImage* img = cvLoadImage("1.jpg",1);
+    // Mat test(img); 
+
+    Mat t = (Mat_<double>(3,1)<<1,2,3);
+    Mat tt(3,5, CV_64FC3, Scalar(1,2,3));
+    cout<<t<<endl;
+    cout<<t.at<double>(2,0);
+    tt=tt.reshape(1,(-1,3));
+    cout<<tt<<endl;
+    tt.row(0)-=t.at<double>(0,0);
+    tt.row(1)-=t.at<double>(1,0);
+
+    // cout<<tt<<endl;
+    tt=tt.t();
+    // tt=tt.reshape(1,(-1,3));
+
+
+    // Mat tt(((1,2),CV_32F,t));
+    cout<<tt<<endl;
+    cout<<tt.size<<endl;
+    cout<<tt.channels()<<endl;
+    // cout<<s<<endl;
+    // cout<<t<<endl;
+
+    //关于mat的属性的定义，比如dims, channels,可以看这个：
+    //https://www.cnblogs.com/justkong/p/7278579.html
+
+
+    return 0;
+}

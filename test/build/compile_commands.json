@@ -1,0 +1,7 @@
+[
+{
+  "directory": "/home/jialin/Documents/VSC_Projects/test/build",
+  "command": "/usr/bin/g++   -isystem /usr/local/include/opencv4  -g   -std=gnu++11 -o CMakeFiles/jialin_test.dir/jialin.cpp.o -c /home/jialin/Documents/VSC_Projects/test/jialin.cpp",
+  "file": "/home/jialin/Documents/VSC_Projects/test/jialin.cpp"
+}
+]

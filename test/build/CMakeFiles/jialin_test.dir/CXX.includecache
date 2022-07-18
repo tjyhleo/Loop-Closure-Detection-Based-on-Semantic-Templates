@@ -1,0 +1,16 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/jialin/Documents/VSC_Projects/test/jialin.cpp
+iostream
+-
+fstream
+-
+opencv4/opencv2/core.hpp
+-
+

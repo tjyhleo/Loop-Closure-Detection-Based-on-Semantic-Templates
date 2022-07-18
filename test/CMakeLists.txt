@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.0)
+project(TEST)
+# set(CMAKE_CXX_FLAGS "{CMAKE_CXX_FLAGS} -std=c++11 -03")
+find_package(OpenCV REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIR})
+add_executable(jialin_test jialin.cpp)
+target_link_libraries(jialin_test ${OpenCV_LIBS})

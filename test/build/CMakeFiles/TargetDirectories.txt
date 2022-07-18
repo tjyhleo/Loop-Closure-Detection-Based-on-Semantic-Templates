@@ -1,0 +1,3 @@
+/home/jialin/Documents/VSC_Projects/test/build/CMakeFiles/rebuild_cache.dir
+/home/jialin/Documents/VSC_Projects/test/build/CMakeFiles/jialin_test.dir
+/home/jialin/Documents/VSC_Projects/test/build/CMakeFiles/edit_cache.dir
