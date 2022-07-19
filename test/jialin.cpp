@@ -24,15 +24,16 @@ int main(){
 
 /////////////////////////////////////////////////////////////////////////////////////////////
     //这个就不用解释了
-    
-    // CV_8U 8位无符号整数 （0…..255）
-    // CV_8S 8 位符号整数 （-128…..127）
-    // CV_16U 16 位无符号整数 （0……65535）
-    // CV_16S 16 位符号整数 （-32768…..32767）
-    // CV_32S 32 位符号整数 （-2147483648……2147483647）
-    // CV_32F 32 位浮点数 （-FLT_MAX ………FLT_MAX，INF，NAN)
-    // CV_64F 64 位浮点数 （-DBL_MAX ……….DBL_MAX，INF，NAN)
+                            // C1    C2    C3    C4
+    // CV_8U 8位无符号整数        0     8     16    24      uchar      （0…..255）
+    // CV_8S 8 位符号整数         1     9     17    25      char      （-128…..127）
+    // CV_16U 16 位无符号整数     2     10    18    26      ushort      （0……65535）
+    // CV_16S 16 位符号整数       3     11    19    27      short      （-32768…..32767）
+    // CV_32S 32 位符号整数       4     12    20    28      int      （-2147483648……2147483647）
+    // CV_32F 32 位浮点数         5     13    21    29      float      （-FLT_MAX ………FLT_MAX，INF，NAN)
+    // CV_64F 64 位浮点数         6     14    22    30      double      （-DBL_MAX ……….DBL_MAX，INF，NAN)
 
+    //https://udayawijenayake.com/2021/06/07/opencv-data-types/
 
     Mat E1 = Mat::eye(4, 4, CV_64F);
     Mat E2 = Mat::ones(4, 4, CV_64F);
@@ -74,29 +75,101 @@ int main(){
     // IplImage* img = cvLoadImage("1.jpg",1);
     // Mat test(img); 
 
-    Mat t = (Mat_<double>(3,1)<<1,2,3);
-    Mat tt(3,5, CV_64FC3, Scalar(1,2,3));
-    cout<<t<<endl;
-    cout<<t.at<double>(2,0);
-    tt=tt.reshape(1,(-1,3));
-    cout<<tt<<endl;
-    tt.row(0)-=t.at<double>(0,0);
-    tt.row(1)-=t.at<double>(1,0);
+
+    // Mat tt(3,5, CV_64FC3, Scalar(1,2,3));
+    // cout<<t<<endl;
+    // cout<<t.at<double>(2,0);
+    // tt=tt.reshape(1,(-1,3));
+    // cout<<tt<<endl;
+    // tt.row(0)-=t.at<double>(0,0);
+    // tt.row(1)-=t.at<double>(1,0);
+
 
     // cout<<tt<<endl;
-    tt=tt.t();
-    // tt=tt.reshape(1,(-1,3));
-
-
-    // Mat tt(((1,2),CV_32F,t));
-    cout<<tt<<endl;
-    cout<<tt.size<<endl;
-    cout<<tt.channels()<<endl;
-    // cout<<s<<endl;
-    // cout<<t<<endl;
+    // cout<<tt.size<<endl;
+    // cout<<tt.channels()<<endl;
 
     //关于mat的属性的定义，比如dims, channels,可以看这个：
     //https://www.cnblogs.com/justkong/p/7278579.html
+
+
+    //矩阵切片
+    float m[3][3] = 
+	{ {1, 2, 3},
+	  {4 ,5, 6},
+	  {7 ,8, 9},
+	};
+    cout <<"array m: "<< m <<endl;
+    cv::Mat testMat(3,3,CV_32F,m);
+    cout << testMat << endl;
+
+
+    // Mat normalised(2,testMat.cols,testMat.type());
+    // normalised.row(0) = testMat.row(0)/testMat.row(1);
+    // normalised.row(1) = testMat.row(1)/testMat.row(0);
+
+    // cout<<"normliased mat: "<< normalised<<endl;
+    
+    // normalised.convertTo(normalised, CV_16S);
+    // cout<<"normlaised mat int: "<<normalised<<endl;
+
+    // for(int i=0; i<normalised.rows; i++){
+    //     for(int j=0; j<normalised.cols; j++){
+    //         cout<<normalised.at<short>(i,j)<<" ";
+    //     }
+    //     cout<<endl;
+    // }
+
+    Mat asdf;
+    for(int i=0; i<testMat.cols; i++){
+        if(testMat.at<float>(0,i)>0 && testMat.at<float>(0,i)<2.5){
+            asdf.push_back(testMat.col(i).t());
+        }
+    }
+    asdf = asdf.t();
+    cout<<"asdf: "<<asdf<<endl;
+
+
+
+
+
+
+    // cv::Mat A=testMat(cv::Rect(0,0,2,3));
+    // cout << A << endl;
+
+    // Mat mask = testMat>5;
+    // cout<<mask<<endl;
+    // Mat mask2 = max(mask,200);
+    // cout<<mask2<<endl;
+    // Mat dst;
+    // testMat.copyTo(dst, mask);
+    // cout<<dst<<endl;
+    // Mat emp;
+    // testMat.convertTo(emp,CV_64F);
+    // cout <<emp<<endl;
+    testMat.convertTo(testMat, CV_64F);
+
+    Mat filter1;
+    for(int i=0; i<testMat.cols; i++){
+        // cout<<testMat.at<double>(2,i)<<endl;
+        // filter1.push_back(testMat.col(i).t());
+        if(testMat.at<double>(2,i)>7){
+            
+            filter1.push_back(testMat.col(i).t());
+        }
+        
+    }
+    filter1 = filter1.t();
+    // cout<<filter1<<endl;
+    // cout<<filter1.size<<endl;
+    bool mtype = testMat.type()==6;
+    // cout<<mtype<<endl;
+
+
+
+    
+
+
 
 
     return 0;

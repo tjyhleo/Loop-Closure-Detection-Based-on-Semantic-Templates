@@ -10,6 +10,7 @@ using namespace std;
 using namespace cv;
 
 //path to kitti360 dataset
+// /media/jialin/045E58135E57FC3C/UBUNTU/KITTI360
 string kitti360 = "/media/jialin/045E58135E57FC3C/UBUNTU/KITTI360/";
 
 //function to read information from .txt file
@@ -85,6 +86,11 @@ Mat txtRead(const string filePath, const string keyWord){
     }
     else if(keyWord=="R_rect_00"){
         outputMat = Mat::eye(4,4,CV_64F);
+        txtMat.convertTo(txtMat, CV_64F);
+        if (txtMat.type()!=6){
+            cout<<"line 91, txtMat'type not converted to CV_64F"<<endl;
+            exit(1);
+        }
         // outputMat.colRange(0,3).rowRange(0,3) = txtMat;
         for (int i=0; i<3; i++){
             for (int j=0; j<3; j++){
@@ -99,7 +105,7 @@ Mat txtRead(const string filePath, const string keyWord){
         outputMat = txtMat;
     }
     
-    // cout << outputMat << endl;
+    cout << outputMat << endl;
 
     inFile.close();
 
@@ -109,7 +115,7 @@ Mat txtRead(const string filePath, const string keyWord){
 
 Mat readPLY(){
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
-    string pc_path=kitti360+"data_3d_semantics/2013_05_28_drive_0007_sync/static";
+    string pc_path=kitti360+"data_3d_semantics/train/2013_05_28_drive_0007_sync/static";
     Mat pcMat;
     vector<cv::String> fn;
     glob(pc_path, fn, false);
@@ -145,12 +151,13 @@ int main(){
     Mat rectMat = txtRead("calibration/perspective.txt", "R_rect_00");
     Mat rectInv = rectMat.inv();
     Mat pcMat = readPLY();
-    // Mat pcMat = (Mat_<double>(1,2,2) << 1,2,3,4);
-    // cout<<pcMat<<endl;
-    // cout<<pcMat.size<<endl;
-    // cout<<pcMat.channels()<<endl;
-    
-    // Mat poseMat;
+
+    int imgW=1408;
+    int imgH=376;
+    int tempWl = 500;
+    int tempWr = 1000;
+    int tempHu = 100;
+    int tempHd = 200;
     int frameId;
     ifstream inFile;
     clock_t start, end;
@@ -163,7 +170,7 @@ int main(){
 
 
     // while(!inFile.eof()){
-    for(int index=0; index<5; index++){
+    for(int index=0; index<1; index++){
         string inLine;
         getline(inFile, inLine,'\n');
         stringstream strs(inLine);
@@ -171,10 +178,16 @@ int main(){
         cout<<"frameId: "<<frameId<<endl;
         string kw = inLine.substr(0,1);
         Mat poseMat = txtRead("data_poses/2013_05_28_drive_0007_sync/poses.txt",kw);
+        //////////////////////////////////world------> camera////////////////////////
         Mat cam2world = (poseMat * cam2poseMat) * rectInv;
         // cout<<cam2world<<endl;
         Mat R = cam2world.colRange(0,3).rowRange(0,3);
         Mat t = cam2world.col(3).rowRange(0,3);
+        t.convertTo(t,CV_64F);
+        if (t.type()!=6){
+            cout<<"line 185, t'type not converted to CV_64F"<<endl;
+            exit(1);
+        }
         start = clock();
         Mat point_world = pcMat.clone();
         //p-t
@@ -187,11 +200,65 @@ int main(){
         Mat point_cam = R.t() * point_world;
         cout<<"point_cam size"<<point_cam.size<<endl;
         cout<<"intrinsic size"<<intrinsicMat.size<<endl;
+        ///////////////////////////////////////camera--------->image///////////////////////////
         Mat point_proj = intrinsicMat * point_cam;
         cout<<"projected point size: "<<point_proj.size<<endl;
         cout<<"projected point channel: "<<point_proj.channels()<<endl;
+        /////////////////////////////extract points with positive depth in camera frame///////////////
+        Mat filter1;
+        point_proj.convertTo(point_proj, CV_64F);
+        if (point_proj.type()!=6){
+            cout<<"line 206, point_proj'type not converted to CV_64F"<<endl;
+            exit(1);
+        }
+        start = clock();
+        //I'm looking for a way to get rid of columns with d<=0, where d is the elements in the third row of a 3xN matrix.
+        for(int i=0; i<point_proj.cols; i++){
+            if(point_proj.at<double>(2,i)>0){
+                filter1.push_back(point_proj.col(i).t());
+            }
+        }
+        end = clock();
+        t_diff=(double)(end-start)/CLOCKS_PER_SEC;
+        printf("big for loop run time is %f \n", t_diff);
+        filter1 = filter1.t();
+        cout<<"points infront of camera: "<<filter1.size<<endl;
         
-        
+        //////////////////////////normalise image coordinate//////////////////////////////
+        Mat filter2(2,filter1.cols, filter1.type());
+        filter2.row(0) = filter1.row(0)/filter1.row(2);
+        filter2.row(1) = filter1.row(1)/filter1.row(2);
+        filter2.convertTo(filter2, CV_16S);
+        if (filter2.type()!=3){
+            cout<<"line231, filter2 type not converted"<<endl;
+            exit(1);
+        }
+        cout<<"filter2 is ready"<<endl;
+
+        ///////////////////////extract points within image frame/////////////////////////////////
+        Mat filter3;
+        start = clock();
+        ///////////////////I'm looking for a more efficient way to do this
+        for(int i=0; i<filter2.cols; i++){
+            if(filter2.at<short>(0,i)>tempWl && filter2.at<short>(0,i)<tempWr){
+                if(filter2.at<short>(1,i)>tempHu && filter2.at<short>(1,i)<tempHd){
+                    filter3.push_back(filter2.col(i).t());
+                }
+            }
+        }
+        cout<<"filter3 is ready"<<endl;
+        cout<<"filter3 size: "<< filter3.size<<endl;
+        // filter3=filter3.t();
+        // cout<<"filter3 shape: "<<filter3.size<<endl;
+        // end = clock();
+        // t_diff=(double)(end-start)/CLOCKS_PER_SEC;
+        // printf("big for loop2 run time is %f \n", t_diff);
+        double val_min, val_max;
+        minMaxLoc(filter2, &val_min, &val_max,NULL,NULL);
+        cout<<"val_min"<<val_min<<endl;
+        cout<<"val_max"<<val_max<<endl;
+
+
        
     }
 
