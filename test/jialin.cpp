@@ -94,14 +94,33 @@ int main(){
 
 
     //矩阵切片
-    float m[3][3] = 
+    double m[3][3] = 
 	{ {1, 2, 3},
-	  {4 ,5, 6},
-	  {7 ,8, 9},
+	  {-32767 ,-32768, -32769},
+	  {7.296016538045364e-127 ,1.562061669658474e+10, 32769},
 	};
     cout <<"array m: "<< m <<endl;
-    cv::Mat testMat(3,3,CV_32F,m);
+    cv::Mat testMat(3,3,CV_64F,m);
     cout << testMat << endl;
+    bool larg = testMat.at<double>(2,2)>2000;
+    cout<<larg<<endl;
+
+    testMat.convertTo(testMat, CV_16S);
+    cout<<testMat<<endl;
+    cout<<testMat.type()<<endl;
+
+    int inn=200;
+    string ouu = to_string(inn);
+    // ouuinn;
+    cout<<"ouu: "<<ouu.length()<<endl;
+
+    string ooo = "20 -0.206532045 320.332 5666.112";
+    string::size_type idx;
+    idx = ooo.rfind("65",7);
+    if(idx!=string::npos){
+        cout<<"idx: "<<idx<<endl;
+    }
+    
 
 
     // Mat normalised(2,testMat.cols,testMat.type());
@@ -120,51 +139,50 @@ int main(){
     //     cout<<endl;
     // }
 
-    Mat asdf;
-    for(int i=0; i<testMat.cols; i++){
-        if(testMat.at<float>(0,i)>0 && testMat.at<float>(0,i)<2.5){
-            asdf.push_back(testMat.col(i).t());
-        }
-    }
-    asdf = asdf.t();
-    cout<<"asdf: "<<asdf<<endl;
+    // Mat asdf;
+    // for(int i=0; i<testMat.cols; i++){
+    //     if(testMat.at<float>(0,i)>0 && testMat.at<float>(0,i)<2.5){
+    //         asdf.push_back(testMat.col(i).t());
+    //     }
+    // }
+    // asdf = asdf.t();
+    // cout<<"asdf: "<<asdf<<endl;
 
 
 
 
 
 
-    // cv::Mat A=testMat(cv::Rect(0,0,2,3));
-    // cout << A << endl;
+    // // cv::Mat A=testMat(cv::Rect(0,0,2,3));
+    // // cout << A << endl;
 
-    // Mat mask = testMat>5;
-    // cout<<mask<<endl;
-    // Mat mask2 = max(mask,200);
-    // cout<<mask2<<endl;
-    // Mat dst;
-    // testMat.copyTo(dst, mask);
-    // cout<<dst<<endl;
-    // Mat emp;
-    // testMat.convertTo(emp,CV_64F);
-    // cout <<emp<<endl;
-    testMat.convertTo(testMat, CV_64F);
+    // // Mat mask = testMat>5;
+    // // cout<<mask<<endl;
+    // // Mat mask2 = max(mask,200);
+    // // cout<<mask2<<endl;
+    // // Mat dst;
+    // // testMat.copyTo(dst, mask);
+    // // cout<<dst<<endl;
+    // // Mat emp;
+    // // testMat.convertTo(emp,CV_64F);
+    // // cout <<emp<<endl;
+    // testMat.convertTo(testMat, CV_64F);
 
-    Mat filter1;
-    for(int i=0; i<testMat.cols; i++){
-        // cout<<testMat.at<double>(2,i)<<endl;
-        // filter1.push_back(testMat.col(i).t());
-        if(testMat.at<double>(2,i)>7){
+    // Mat filter1;
+    // for(int i=0; i<testMat.cols; i++){
+    //     // cout<<testMat.at<double>(2,i)<<endl;
+    //     // filter1.push_back(testMat.col(i).t());
+    //     if(testMat.at<double>(2,i)>7){
             
-            filter1.push_back(testMat.col(i).t());
-        }
+    //         filter1.push_back(testMat.col(i).t());
+    //     }
         
-    }
-    filter1 = filter1.t();
-    // cout<<filter1<<endl;
-    // cout<<filter1.size<<endl;
-    bool mtype = testMat.type()==6;
-    // cout<<mtype<<endl;
-
+    // }
+    // filter1 = filter1.t();
+    // // cout<<filter1<<endl;
+    // // cout<<filter1.size<<endl;
+    // bool mtype = testMat.type()==6;
+    // // cout<<mtype<<endl;
 
 
     
