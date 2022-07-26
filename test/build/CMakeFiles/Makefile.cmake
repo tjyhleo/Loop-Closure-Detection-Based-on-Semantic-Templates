@@ -49,4 +49,5 @@ set(CMAKE_MAKEFILE_PRODUCTS
 # Dependency information for all targets:
 set(CMAKE_DEPEND_INFO_FILES
   "CMakeFiles/jialin_test.dir/DependInfo.cmake"
+  "CMakeFiles/jialin_test2.dir/DependInfo.cmake"
   )

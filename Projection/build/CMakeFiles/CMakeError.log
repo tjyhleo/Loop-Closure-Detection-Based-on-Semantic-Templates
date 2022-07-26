@@ -1,22 +1,22 @@
 Determining if the pthread_create exist failed with the following output:
 Change Dir: /home/jialin/Documents/VSC_Projects/Projection/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_4a776/fast"
-/usr/bin/make -f CMakeFiles/cmTC_4a776.dir/build.make CMakeFiles/cmTC_4a776.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_7f6f8/fast"
+/usr/bin/make -f CMakeFiles/cmTC_7f6f8.dir/build.make CMakeFiles/cmTC_7f6f8.dir/build
 make[1]: Entering directory '/home/jialin/Documents/VSC_Projects/Projection/build/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_4a776.dir/CheckSymbolExists.c.o
-/usr/bin/gcc    -o CMakeFiles/cmTC_4a776.dir/CheckSymbolExists.c.o   -c /home/jialin/Documents/VSC_Projects/Projection/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
-Linking C executable cmTC_4a776
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_4a776.dir/link.txt --verbose=1
-/usr/bin/gcc      -rdynamic CMakeFiles/cmTC_4a776.dir/CheckSymbolExists.c.o  -o cmTC_4a776 
-CMakeFiles/cmTC_4a776.dir/CheckSymbolExists.c.o: In function `main':
+Building C object CMakeFiles/cmTC_7f6f8.dir/CheckSymbolExists.c.o
+/usr/bin/gcc    -o CMakeFiles/cmTC_7f6f8.dir/CheckSymbolExists.c.o   -c /home/jialin/Documents/VSC_Projects/Projection/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTC_7f6f8
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_7f6f8.dir/link.txt --verbose=1
+/usr/bin/gcc      -rdynamic CMakeFiles/cmTC_7f6f8.dir/CheckSymbolExists.c.o  -o cmTC_7f6f8 
+CMakeFiles/cmTC_7f6f8.dir/CheckSymbolExists.c.o: In function `main':
 CheckSymbolExists.c:(.text+0x1b): undefined reference to `pthread_create'
 collect2: error: ld returned 1 exit status
-CMakeFiles/cmTC_4a776.dir/build.make:97: recipe for target 'cmTC_4a776' failed
-make[1]: *** [cmTC_4a776] Error 1
+CMakeFiles/cmTC_7f6f8.dir/build.make:97: recipe for target 'cmTC_7f6f8' failed
+make[1]: *** [cmTC_7f6f8] Error 1
 make[1]: Leaving directory '/home/jialin/Documents/VSC_Projects/Projection/build/CMakeFiles/CMakeTmp'
-Makefile:126: recipe for target 'cmTC_4a776/fast' failed
-make: *** [cmTC_4a776/fast] Error 2
+Makefile:126: recipe for target 'cmTC_7f6f8/fast' failed
+make: *** [cmTC_7f6f8/fast] Error 2
 
 File /home/jialin/Documents/VSC_Projects/Projection/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
 /* */
@@ -36,20 +36,20 @@ int main(int argc, char** argv)
 Determining if the function pthread_create exists in the pthreads failed with the following output:
 Change Dir: /home/jialin/Documents/VSC_Projects/Projection/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_705aa/fast"
-/usr/bin/make -f CMakeFiles/cmTC_705aa.dir/build.make CMakeFiles/cmTC_705aa.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_55c92/fast"
+/usr/bin/make -f CMakeFiles/cmTC_55c92.dir/build.make CMakeFiles/cmTC_55c92.dir/build
 make[1]: Entering directory '/home/jialin/Documents/VSC_Projects/Projection/build/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_705aa.dir/CheckFunctionExists.c.o
-/usr/bin/gcc   -DCHECK_FUNCTION_EXISTS=pthread_create   -o CMakeFiles/cmTC_705aa.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-3.10/Modules/CheckFunctionExists.c
-Linking C executable cmTC_705aa
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_705aa.dir/link.txt --verbose=1
-/usr/bin/gcc  -DCHECK_FUNCTION_EXISTS=pthread_create    -rdynamic CMakeFiles/cmTC_705aa.dir/CheckFunctionExists.c.o  -o cmTC_705aa -lpthreads 
+Building C object CMakeFiles/cmTC_55c92.dir/CheckFunctionExists.c.o
+/usr/bin/gcc   -DCHECK_FUNCTION_EXISTS=pthread_create   -o CMakeFiles/cmTC_55c92.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-3.10/Modules/CheckFunctionExists.c
+Linking C executable cmTC_55c92
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_55c92.dir/link.txt --verbose=1
+/usr/bin/gcc  -DCHECK_FUNCTION_EXISTS=pthread_create    -rdynamic CMakeFiles/cmTC_55c92.dir/CheckFunctionExists.c.o  -o cmTC_55c92 -lpthreads 
 /usr/bin/ld: cannot find -lpthreads
 collect2: error: ld returned 1 exit status
-CMakeFiles/cmTC_705aa.dir/build.make:97: recipe for target 'cmTC_705aa' failed
-make[1]: *** [cmTC_705aa] Error 1
+CMakeFiles/cmTC_55c92.dir/build.make:97: recipe for target 'cmTC_55c92' failed
+make[1]: *** [cmTC_55c92] Error 1
 make[1]: Leaving directory '/home/jialin/Documents/VSC_Projects/Projection/build/CMakeFiles/CMakeTmp'
-Makefile:126: recipe for target 'cmTC_705aa/fast' failed
-make: *** [cmTC_705aa/fast] Error 2
+Makefile:126: recipe for target 'cmTC_55c92/fast' failed
+make: *** [cmTC_55c92/fast] Error 2
 
 

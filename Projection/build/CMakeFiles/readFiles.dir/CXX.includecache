@@ -6,7 +6,7 @@
 
 #IncludeRegexTransform: 
 
-/home/jialin/Documents/VSC_Projects/Projection/projection.cpp
+/home/jialin/Documents/VSC_Projects/Projection/readFiles.cpp
 iostream
 -
 fstream
@@ -20,8 +20,6 @@ pcl/io/pcd_io.h
 pcl/point_types.h
 -
 pcl/io/ply_io.h
--
-ctime
 -
 
 /usr/include/eigen3/Eigen/Cholesky

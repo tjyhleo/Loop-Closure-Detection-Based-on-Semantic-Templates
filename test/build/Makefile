@@ -123,6 +123,19 @@ jialin_test/fast:
 	$(MAKE) -f CMakeFiles/jialin_test.dir/build.make CMakeFiles/jialin_test.dir/build
 .PHONY : jialin_test/fast
 
+#=============================================================================
+# Target rules for targets named jialin_test2
+
+# Build rule for target.
+jialin_test2: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 jialin_test2
+.PHONY : jialin_test2
+
+# fast build rule for target.
+jialin_test2/fast:
+	$(MAKE) -f CMakeFiles/jialin_test2.dir/build.make CMakeFiles/jialin_test2.dir/build
+.PHONY : jialin_test2/fast
+
 jialin.o: jialin.cpp.o
 
 .PHONY : jialin.o
@@ -150,6 +163,33 @@ jialin.cpp.s:
 	$(MAKE) -f CMakeFiles/jialin_test.dir/build.make CMakeFiles/jialin_test.dir/jialin.cpp.s
 .PHONY : jialin.cpp.s
 
+jialin2.o: jialin2.cpp.o
+
+.PHONY : jialin2.o
+
+# target to build an object file
+jialin2.cpp.o:
+	$(MAKE) -f CMakeFiles/jialin_test2.dir/build.make CMakeFiles/jialin_test2.dir/jialin2.cpp.o
+.PHONY : jialin2.cpp.o
+
+jialin2.i: jialin2.cpp.i
+
+.PHONY : jialin2.i
+
+# target to preprocess a source file
+jialin2.cpp.i:
+	$(MAKE) -f CMakeFiles/jialin_test2.dir/build.make CMakeFiles/jialin_test2.dir/jialin2.cpp.i
+.PHONY : jialin2.cpp.i
+
+jialin2.s: jialin2.cpp.s
+
+.PHONY : jialin2.s
+
+# target to generate assembly for a file
+jialin2.cpp.s:
+	$(MAKE) -f CMakeFiles/jialin_test2.dir/build.make CMakeFiles/jialin_test2.dir/jialin2.cpp.s
+.PHONY : jialin2.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -157,11 +197,15 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... rebuild_cache"
-	@echo "... jialin_test"
 	@echo "... edit_cache"
+	@echo "... jialin_test"
+	@echo "... jialin_test2"
 	@echo "... jialin.o"
 	@echo "... jialin.i"
 	@echo "... jialin.s"
+	@echo "... jialin2.o"
+	@echo "... jialin2.i"
+	@echo "... jialin2.s"
 .PHONY : help
 
 

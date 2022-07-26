@@ -4,7 +4,7 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
-  "/home/jialin/Documents/VSC_Projects/Projection/projection.cpp" "/home/jialin/Documents/VSC_Projects/Projection/build/CMakeFiles/projection.dir/projection.cpp.o"
+  "/home/jialin/Documents/VSC_Projects/Projection/readFiles.cpp" "/home/jialin/Documents/VSC_Projects/Projection/build/CMakeFiles/readFiles.dir/readFiles.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 

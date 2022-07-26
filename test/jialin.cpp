@@ -6,32 +6,32 @@ using namespace std;
 using namespace cv;
 
 int main(){
-    ifstream inFile;
-    string kitti360 = "/media/jialin/045E58135E57FC3C/UBUNTU/KITTI360/";
-    inFile.open(kitti360+"data_poses/2013_05_28_drive_0007_sync/poses.txt");
-    if(!inFile){
-        cout<<"unable to open file: poses.txt"<<endl;
-        exit(1);
-    }
+    // ifstream inFile;
+    // string kitti360 = "/media/jialin/045E58135E57FC3C/UBUNTU/KITTI360/";
+    // inFile.open(kitti360+"data_poses/2013_05_28_drive_0007_sync/poses.txt");
+    // if(!inFile){
+    //     cout<<"unable to open file: poses.txt"<<endl;
+    //     exit(1);
+    // }
 
-    // while(!inFile.eof()){
-    string inLine;
-    for(int index=0; index<5; index++){
-        getline(inFile, inLine,'\n');
-        // cout << inLine <<endl;
-        // stringstream strs(inLine);
-    }
+    // // while(!inFile.eof()){
+    // string inLine;
+    // for(int index=0; index<5; index++){
+    //     getline(inFile, inLine,'\n');
+    //     // cout << inLine <<endl;
+    //     // stringstream strs(inLine);
+    // }
 
 /////////////////////////////////////////////////////////////////////////////////////////////
     //这个就不用解释了
-                            // C1    C2    C3    C4
-    // CV_8U 8位无符号整数        0     8     16    24      uchar      （0…..255）
-    // CV_8S 8 位符号整数         1     9     17    25      char      （-128…..127）
-    // CV_16U 16 位无符号整数     2     10    18    26      ushort      （0……65535）
-    // CV_16S 16 位符号整数       3     11    19    27      short      （-32768…..32767）
-    // CV_32S 32 位符号整数       4     12    20    28      int      （-2147483648……2147483647）
-    // CV_32F 32 位浮点数         5     13    21    29      float      （-FLT_MAX ………FLT_MAX，INF，NAN)
-    // CV_64F 64 位浮点数         6     14    22    30      double      （-DBL_MAX ……….DBL_MAX，INF，NAN)
+                            // C1    C2    C3    C4         C1      C2      C3      C4
+    // CV_8U 8位无符号整数        0     8     16    24      uchar    Vec2b    Vec3b  Vec4b  （0…..255）
+    // CV_8S 8 位符号整数         1     9     17    25      char                            （-128…..127）
+    // CV_16U 16 位无符号整数     2     10    18    26      ushort                          （0……65535）
+    // CV_16S 16 位符号整数       3     11    19    27      short    Vec2s    Vec3s  Vec4s  （-32768…..32767）
+    // CV_32S 32 位符号整数       4     12    20    28      int      Vec2i    Vec3i  Vec4i  （-2147483648……2147483647）
+    // CV_32F 32 位浮点数         5     13    21    29      float    Vec2f    Vec3f  Vec4f  （-FLT_MAX ………FLT_MAX，INF，NAN)
+    // CV_64F 64 位浮点数         6     14    22    30      double   Vec2d    Vec3d  Vec4d  （-DBL_MAX ……….DBL_MAX，INF，NAN)
 
     //https://udayawijenayake.com/2021/06/07/opencv-data-types/
 
@@ -94,33 +94,88 @@ int main(){
 
 
     //矩阵切片
-    double m[3][3] = 
-	{ {1, 2, 3},
-	  {-32767 ,-32768, -32769},
-	  {7.296016538045364e-127 ,1.562061669658474e+10, 32769},
+    double m[3][4] = 
+	{ {1, 2, 3,4},
+	  {5,6,7,8},
+	  {9,10,11,12},
 	};
-    cout <<"array m: "<< m <<endl;
-    cv::Mat testMat(3,3,CV_64F,m);
+    // cout <<"array m: "<< m <<endl;
+    cv::Mat testMat(3,4,CV_64F,m);
     cout << testMat << endl;
-    bool larg = testMat.at<double>(2,2)>2000;
-    cout<<larg<<endl;
 
-    testMat.convertTo(testMat, CV_16S);
+
+    // Mat ff(3,4,testMat.type());
+    // testMat.col(1).copyTo(ff.col(1));
+    // testMat.col(1) = ff.col(1);
+    // ff.col(1) = testMat.col(1);
+    Mat ff = testMat.rowRange(0,3);
+    Mat dd = ff.row(0)+1;
+    testMat.row(0) = dd;
     cout<<testMat<<endl;
-    cout<<testMat.type()<<endl;
-
-    int inn=200;
-    string ouu = to_string(inn);
-    // ouuinn;
-    cout<<"ouu: "<<ouu.length()<<endl;
-
-    string ooo = "20 -0.206532045 320.332 5666.112";
-    string::size_type idx;
-    idx = ooo.rfind("65",7);
-    if(idx!=string::npos){
-        cout<<"idx: "<<idx<<endl;
-    }
     
+
+    // Mat mat = Mat::eye(Size(12,12), CV_8UC1);
+    // FileStorage fs("vocabulary.xml", FileStorage::WRITE);
+    // fs<<"vocabulary"<<mat;
+    // fs.release();
+
+    
+
+    // Mat part = testMat.rowRange(0,2);
+    // cout<<part<<endl;
+
+    // part.copyTo(testMat.rowRange(1,3));
+    // cout<<testMat<<endl;
+
+
+    // Mat tt(4,5,CV_64FC3,Scalar(1,2,3));
+    // Mat tt = Mat::zeros(4,5,CV_64FC3);
+    // cout<<tt<<endl;
+    // // cout<<tt.at<double>(3,3)<<endl;
+
+    // // tt.at<Vec3d>(1,1) = testMat.rowRange(0,3).col(0);
+    // testMat.rowRange(0,3).col(0).copyTo(tt.at<Vec3d>(1,1));
+
+    // cout<<tt.at<Vec3d>(1,1)<<endl;
+
+    // Mat chan[1];
+    // split(tt, chan);
+    // cout<<chan[2]<<endl;
+    // cout<<chan[0].channels()<<endl;
+
+    // vector<Mat> mer;
+    // Mat merged;
+    // mer.push_back(chan[0]);
+    // mer.push_back(chan[2]);
+    // merge(mer,merged);
+    // cout<<merged<<endl;
+    // cout<<merged.size<<endl;
+    // cout<<merged.channels()<<endl;
+
+
+    // string st = "asd";
+    // cout<<st.length()<<endl;
+
+    // bool larg = testMat.at<double>(2,2)>2000;
+    // cout<<larg<<endl;
+
+    // testMat.convertTo(testMat, CV_16S);
+    // cout<<testMat<<endl;
+    // cout<<testMat.type()<<endl;
+
+    // int inn=200;
+    // string ouu = to_string(inn);
+    // // ouuinn;
+    // cout<<"ouu: "<<ouu.length()<<endl;
+
+    // string ooo = "20 -0.206532045 320.332 5666.112";
+    // string::size_type idx;
+    // idx = ooo.rfind("65",7);
+    // if(idx!=string::npos){
+    //     cout<<"idx: "<<idx<<endl;
+    // }
+    
+
 
 
     // Mat normalised(2,testMat.cols,testMat.type());
@@ -156,8 +211,26 @@ int main(){
     // // cv::Mat A=testMat(cv::Rect(0,0,2,3));
     // // cout << A << endl;
 
-    // // Mat mask = testMat>5;
-    // // cout<<mask<<endl;
+    // Mat mask = testMat.row(2)>10;
+    // Mat mask_all;
+    // mask_all.push_back(mask);
+    // mask_all.push_back(mask);
+    // mask_all.push_back(mask);
+    // cout<<mask_all<<endl;
+    // Mat f;
+    // testMat.copyTo(f,mask_all);
+    // cout<<f<<endl;
+    // // cout<<f(mask_all)<<endl;
+    // vector<int>idx;
+    // sortIdx(f.row(2),idx, SORT_EVERY_ROW + SORT_ASCENDING);
+    // for(int i=0; i<idx.size();i++){
+    //     cout<<idx[i]<<endl;
+    // }
+
+    // sort()
+    // findNonZero()
+    // f.copyTo(sm);
+    // cout<<sm<<endl;
     // // Mat mask2 = max(mask,200);
     // // cout<<mask2<<endl;
     // // Mat dst;
