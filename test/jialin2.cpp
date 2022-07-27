@@ -39,8 +39,14 @@ double m[3][4] =
 
 // Mat a(3,4,CV_64FC1);
 
-Mat a = testMat.rowRange(0,2).clone();
-a.row(0) = testMat.row(1) - testMat.row(2);
+// int A = 1000;
+// for()
+
+// Mat a = testMat.rowRange(0,2).clone();
+// // a.row(0) = testMat.row(1) - testMat.row(2);
+// Scalar ss = sum(testMat.col(0));
+// float s = ss[0];
+// cout<<s<<endl;
 // Mat b;
 // a.copyTo(b);
 // b = a.clone();

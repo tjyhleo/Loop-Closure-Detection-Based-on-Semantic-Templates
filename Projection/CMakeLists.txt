@@ -6,9 +6,9 @@ include_directories(${OpenCV_INCLUDE_DIR} ${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 add_executable(projection projection.cpp)
-add_executable(readFiles readFiles.cpp)
+add_executable(MI MI.cpp)
 target_link_libraries(projection ${OpenCV_LIBS} ${PCL_LIBRARIES})
-target_link_libraries(readFiles ${OpenCV_LIBS} ${PCL_LIBRARIES})
+target_link_libraries(MI ${OpenCV_LIBS} ${PCL_LIBRARIES})
 
 
 # cmake_minimum_required(VERSION 2.6 FATAL_ERROR)

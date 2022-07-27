@@ -113,7 +113,8 @@ void readPLY(Mat& pcMat, string str){
 }
 
 
-void world2image(const Mat pcMatclone, Mat& Pimg, const Mat intrinsicMat, const int frameId){
+bool world2image(const Mat pcMatclone, Mat& Pimg, const Mat intrinsicMat, const int frameId){
+    bool flag;
     clock_t start, end; //timing
     double t_diff; //timing
     //read cam2world matrix
@@ -187,7 +188,12 @@ void world2image(const Mat pcMatclone, Mat& Pimg, const Mat intrinsicMat, const 
     t_diff=(double)(end-start)/CLOCKS_PER_SEC; //calculate time difference
     // printf("first big for loop %f \n", t_diff);
     Mat filter2;
-    // cout<<non_zeros<<endl;
+    // cout<<"non_zeros"<<non_zeros<<endl;
+    if(non_zeros==0){
+        flag=false;
+        return flag;
+    }
+
     filter2 = filter1.colRange(0,non_zeros);
     // cout<<"points infront of camera: "<<filter1.size<<endl;
     
@@ -205,6 +211,8 @@ void world2image(const Mat pcMatclone, Mat& Pimg, const Mat intrinsicMat, const 
     end = clock(); //stop timing
     t_diff=(double)(end-start)/CLOCKS_PER_SEC; //calculate time difference
     // printf("time for phase3 %f \n", t_diff);
+    flag=true;
+    return flag;
 
 
 
@@ -212,10 +220,13 @@ void world2image(const Mat pcMatclone, Mat& Pimg, const Mat intrinsicMat, const 
 
 
 int main(){
+    int valid_frames =0;
+    int skipped_frames=0;
+    int noProj_frames=0;
     int imgW=1408; //img width
     int imgH=376;   //img height
-    int tempWl = 300;   //template width
-    int tempWr = 1100;
+    int tempWl = 200;   //template width
+    int tempWr = 1200;
     int tempHu = 80;   //template hight
     int tempHd = 300;
     int frameId; //the index of frame
@@ -227,11 +238,12 @@ int main(){
     Mat pcMat; //matrix that stores pointcloud information
     Mat histMat = Mat::ones(300,300,CV_32SC1); //big histogram matrix
     vector<uchar> seg_class; //segmentation classes
+    bool flag; //flag indicating if there are valid points projected to a certain frame
 
 
     //read matrices from files
     readPLY(pcMat, "static"); //read static ply files
-    readPLY(pcMat, "dynamic"); //read dynamic ply files
+    // readPLY(pcMat, "dynamic"); //read dynamic ply files
     pcMat = pcMat.t(); //transpose pcMat
     // cout<<"pc_Mat size "<<pcMat.size<<endl;
     txtRead("calibration/perspective.txt", "P_rect_00", intrinsicMat);//read intrinsic matrix
@@ -279,8 +291,8 @@ int main(){
 
 
     //loop through frame by frame
-    for(int i=0; i<frameSequence.size(); i++){
-    // for(int i=0; i<1000; i++){
+    for(int i=0; i<frameSequence.size()-1; i++){
+    // for(int i=2450; i<2550; i++){
     // for(int i=0; i<1; i++){
         frameId = frameSequence[i];
         cout<<"frame: "<<frameId<<endl;
@@ -292,7 +304,12 @@ int main(){
         
         Mat P_img;
         start = clock();
-        world2image(pcMat_clone, P_img, intrinsicMat,frameId);
+        flag = world2image(pcMat_clone, P_img, intrinsicMat,frameId);
+        if(flag==false){
+            cout<<"no point projected to frame "<< frameId<<endl;
+            noProj_frames+=1;
+            continue;
+        }
         end = clock(); //stop timing
         t_diff=(double)(end-start)/CLOCKS_PER_SEC; //calculate time difference
         printf("time for world2image %f \n", t_diff);
@@ -321,13 +338,9 @@ int main(){
         t_diff=(double)(end-start)/CLOCKS_PER_SEC;
         // printf("time for big loop2 is %f \n", t_diff);
 
-        // //build correspondense between the template in frame1 and the template in frame2
+        //build correspondense between the template in frame1 and the template in frame2
         Mat frame_uv;
-
         Mat frame_xyz = Mat::zeros(5,imgMat.cols * imgMat.rows, CV_64FC1);
-        // cout<<"302 reached"<<endl;
-        // Mat frame_uv;
-        // Mat frame_xyz;
         Mat frame1_u;
         Mat frame1_v;
         Mat frame1_x;
@@ -366,7 +379,12 @@ int main(){
         Mat frame1_uv;
         // cout<<"337 reached"<<endl;
         // cout<<frame_xyz.col(1).t()<<endl;
-        world2image(frame_xyz, frame1_uv, intrinsicMat, frameId);
+        flag = world2image(frame_xyz, frame1_uv, intrinsicMat, frameId);
+        if(flag==false){
+            cout<<"no point projected to frame "<< frameId<<endl;
+            noProj_frames+=1;
+            continue;
+        }
         // cout<<"339 reached"<<endl;
         frame_uv.push_back(frame1_uv.row(0));
         frame_uv.push_back(frame1_uv.row(1));
@@ -374,9 +392,15 @@ int main(){
 
         Mat frame2_uv;
         int frameId2 = frameSequence[i+1];
-        world2image(frame_xyzC, frame2_uv, intrinsicMat, frameId2);
+        flag = world2image(frame_xyzC, frame2_uv, intrinsicMat, frameId2);
+        if(flag==false){
+            cout<<"no point projected to frame "<< frameId<<endl;
+            noProj_frames+=1;
+            continue;
+        }
         if(frame2_uv.cols != frame_uv.cols){
             cout<<"frame "<<frameId<<" is skipped"<<endl;
+            skipped_frames+=1;
             continue;
         }
         // cout<<"347 reached"<<endl;
@@ -402,10 +426,14 @@ int main(){
         // cout<<"frame_uv is ready"<<endl;
 
         //////////////////////////////////////////////////////
-        Mat frame1 = imread(fn_seg[i], IMREAD_GRAYSCALE);
-        Mat frame2 = imread(fn_seg[i+1], IMREAD_GRAYSCALE);
+        Mat frame1 = imread(fn_seg[frameId], IMREAD_GRAYSCALE);
+        Mat frame2 = imread(fn_seg[frameId2], IMREAD_GRAYSCALE);
+        // minMaxLoc(frame1, &val_min, &val_max,NULL,NULL);
+        // cout<<"val_min: "<<val_min<<endl;
+        // cout<<"val_max: "<<val_max<<endl;
         frame1.convertTo(frame1, CV_8UC1);
         frame2.convertTo(frame2,CV_8UC1);
+        
 
         
         for(int i; i<frame_uv.cols; i++){
@@ -413,6 +441,8 @@ int main(){
             uchar p2 = frame2.at<uchar>(frame_uv.at<ushort>(3,i), frame_uv.at<ushort>(2,i));
             histMat.at<int>(p1,p2) +=1;
         }
+
+        valid_frames +=1;
         
         
 
@@ -429,27 +459,30 @@ int main(){
         // Mat merged_mat;
         // merge(chans_vec, merged_mat);
         // merged_mat.convertTo(merged_mat,CV_8UC3);
-        // cout<<"merged_mat channels: "<<merged_mat.channels()<<endl;
-        // cout<<"merged_mat size: "<<merged_mat.size<<endl;
-        // cout<<"merged_mat type"<<merged_mat.type()<<endl;
+        // // cout<<"merged_mat channels: "<<merged_mat.channels()<<endl;
+        // // cout<<"merged_mat size: "<<merged_mat.size<<endl;
+        // // cout<<"merged_mat type"<<merged_mat.type()<<endl;
 
-        // minMaxLoc(merged_mat, &val_min, &val_max,NULL,NULL);
-        // cout<<"val_min: "<<val_min<<endl;
-        // cout<<"val_max: "<<val_max<<endl;
+        // // minMaxLoc(merged_mat, &val_min, &val_max,NULL,NULL);
+        // // cout<<"val_min: "<<val_min<<endl;
+        // // cout<<"val_max: "<<val_max<<endl;
 
         // // display image
         // imshow("frame " + frameId, merged_mat);
         // waitKey(0);
 
-
+    FileStorage fs("histMat.xml", FileStorage::WRITE);
+    fs<<"histMat"<<histMat;
+    fs.release();
 
         
     }
 
     ////////////////////////////////////////////////////////////////
-    FileStorage fs("histMat.xml", FileStorage::WRITE);
-    fs<<"histMat"<<histMat;
-    fs.release();
+    cout<<"valid frames: "<<valid_frames<<endl;
+    cout<<"skipped frames: "<<skipped_frames<<endl;
+    cout<<"empty frames: "<<noProj_frames<<endl;
+    
 
 
     return 0;

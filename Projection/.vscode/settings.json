@@ -6,6 +6,7 @@
         "tuple": "cpp",
         "array": "cpp",
         "string_view": "cpp",
-        "iosfwd": "cpp"
+        "iosfwd": "cpp",
+        "functional": "cpp"
     }
 }

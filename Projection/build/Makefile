@@ -124,17 +124,44 @@ projection/fast:
 .PHONY : projection/fast
 
 #=============================================================================
-# Target rules for targets named readFiles
+# Target rules for targets named MI
 
 # Build rule for target.
-readFiles: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 readFiles
-.PHONY : readFiles
+MI: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 MI
+.PHONY : MI
 
 # fast build rule for target.
-readFiles/fast:
-	$(MAKE) -f CMakeFiles/readFiles.dir/build.make CMakeFiles/readFiles.dir/build
-.PHONY : readFiles/fast
+MI/fast:
+	$(MAKE) -f CMakeFiles/MI.dir/build.make CMakeFiles/MI.dir/build
+.PHONY : MI/fast
+
+MI.o: MI.cpp.o
+
+.PHONY : MI.o
+
+# target to build an object file
+MI.cpp.o:
+	$(MAKE) -f CMakeFiles/MI.dir/build.make CMakeFiles/MI.dir/MI.cpp.o
+.PHONY : MI.cpp.o
+
+MI.i: MI.cpp.i
+
+.PHONY : MI.i
+
+# target to preprocess a source file
+MI.cpp.i:
+	$(MAKE) -f CMakeFiles/MI.dir/build.make CMakeFiles/MI.dir/MI.cpp.i
+.PHONY : MI.cpp.i
+
+MI.s: MI.cpp.s
+
+.PHONY : MI.s
+
+# target to generate assembly for a file
+MI.cpp.s:
+	$(MAKE) -f CMakeFiles/MI.dir/build.make CMakeFiles/MI.dir/MI.cpp.s
+.PHONY : MI.cpp.s
 
 projection.o: projection.cpp.o
 
@@ -163,33 +190,6 @@ projection.cpp.s:
 	$(MAKE) -f CMakeFiles/projection.dir/build.make CMakeFiles/projection.dir/projection.cpp.s
 .PHONY : projection.cpp.s
 
-readFiles.o: readFiles.cpp.o
-
-.PHONY : readFiles.o
-
-# target to build an object file
-readFiles.cpp.o:
-	$(MAKE) -f CMakeFiles/readFiles.dir/build.make CMakeFiles/readFiles.dir/readFiles.cpp.o
-.PHONY : readFiles.cpp.o
-
-readFiles.i: readFiles.cpp.i
-
-.PHONY : readFiles.i
-
-# target to preprocess a source file
-readFiles.cpp.i:
-	$(MAKE) -f CMakeFiles/readFiles.dir/build.make CMakeFiles/readFiles.dir/readFiles.cpp.i
-.PHONY : readFiles.cpp.i
-
-readFiles.s: readFiles.cpp.s
-
-.PHONY : readFiles.s
-
-# target to generate assembly for a file
-readFiles.cpp.s:
-	$(MAKE) -f CMakeFiles/readFiles.dir/build.make CMakeFiles/readFiles.dir/readFiles.cpp.s
-.PHONY : readFiles.cpp.s
-
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -197,15 +197,15 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... rebuild_cache"
-	@echo "... projection"
 	@echo "... edit_cache"
-	@echo "... readFiles"
+	@echo "... projection"
+	@echo "... MI"
+	@echo "... MI.o"
+	@echo "... MI.i"
+	@echo "... MI.s"
 	@echo "... projection.o"
 	@echo "... projection.i"
 	@echo "... projection.s"
-	@echo "... readFiles.o"
-	@echo "... readFiles.i"
-	@echo "... readFiles.s"
 .PHONY : help
 
 
