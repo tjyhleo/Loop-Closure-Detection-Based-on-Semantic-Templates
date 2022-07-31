@@ -13,7 +13,12 @@ using namespace cv;
 //path to kitti360 dataset
 string kitti360 = "/media/jialin/045E58135E57FC3C/UBUNTU/KITTI360/";
 
-//function to read information from .txt file
+/**
+function to read information from .txt file
+filePath: path of the txt file
+keyWord: keyWord used to find the line that includes the keyword
+outputMat: the matrix that contains the information read from .txt file
+*/
 void txtRead(const string filePath, const string keyWord, Mat& outputMat){
     double d;
     ifstream inFile;
@@ -23,6 +28,8 @@ void txtRead(const string filePath, const string keyWord, Mat& outputMat){
     int strStart;
     int shape1;
     int shape2;
+
+    //"P_rect_00" is keyword for intrinsic matrix, which is 3*4 shape
     if(keyWord=="P_rect_00"){
         strStart = keyWord.length()+2;
         shape1 = 3;
@@ -33,24 +40,25 @@ void txtRead(const string filePath, const string keyWord, Mat& outputMat){
         shape1 = 4;
         shape2 = 4;
     }
+
     //open txt file
     inFile.open(path);
     if(!inFile){
         cout<<"unable to open file: "<<path <<endl;
         exit(1);
     }
-    //go through the txt file line by line until the target line is found
+
+    //go through the txt file line by line until the keyword is found in a line
     while(!inFile.eof()){
         string inLine;
         getline(inFile, inLine,'\n');
         idx=inLine.rfind(keyWord,0);
         if(idx!=string::npos){
-            // cout<<"idx: "<<idx<<endl;
             target_string=inLine.substr(strStart);
-            // cout<<"target_string: "<<target_string<<endl;
             break;
         }
     }
+
     //read the target line into a vector
     vector<double> txtVec;
     stringstream ss(target_string);
@@ -67,7 +75,6 @@ void txtRead(const string filePath, const string keyWord, Mat& outputMat){
     
     //further process the txtMat into a form that can be directly used
     if(keyWord=="P_rect_00"){
-        // outputMat = txtMat.colRange(0,3).rowRange(0,3);
         txtMat(Range(0,3),Range(0,3)).copyTo(outputMat);
     }
 
@@ -237,6 +244,7 @@ int main(){
     Mat intrinsicMat; // intrinsic matrix
     Mat pcMat; //matrix that stores pointcloud information
     Mat histMat = Mat::ones(300,300,CV_32SC1); //big histogram matrix
+    int histSum; //sum of all the values in histMat
     vector<uchar> seg_class; //segmentation classes
     bool flag; //flag indicating if there are valid points projected to a certain frame
 
@@ -442,7 +450,18 @@ int main(){
             histMat.at<int>(p1,p2) +=1;
         }
 
+        histSum += frame_uv.cols;
+        cout<<"histSum: "<<histSum<<endl;
+
         valid_frames +=1;
+        cout<<"valid frames: "<<valid_frames<<endl;
+        cout<<"skipped frames: "<<skipped_frames<<endl;
+        cout<<"empty frames: "<<noProj_frames<<endl;
+
+        FileStorage fs("histMat.xml", FileStorage::WRITE);
+        fs<<"histMat"<<histMat;
+        fs.release();
+        
         
         
 
@@ -471,17 +490,12 @@ int main(){
         // imshow("frame " + frameId, merged_mat);
         // waitKey(0);
 
-    FileStorage fs("histMat.xml", FileStorage::WRITE);
-    fs<<"histMat"<<histMat;
-    fs.release();
+    
 
         
     }
 
     ////////////////////////////////////////////////////////////////
-    cout<<"valid frames: "<<valid_frames<<endl;
-    cout<<"skipped frames: "<<skipped_frames<<endl;
-    cout<<"empty frames: "<<noProj_frames<<endl;
     
 
 
