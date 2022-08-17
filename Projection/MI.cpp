@@ -12,49 +12,60 @@ using namespace cv;
 //path to kitti360 dataset
 string kitti360 = "/media/jialin/045E58135E57FC3C/UBUNTU/KITTI360/";
 
-//function to calculate mutual information :I 
-//  src: part of source image that overlapps with template image
-//  templ: template image
-//  templ_class: the set that contains the unique values in template image
-float MI_calculator(const Mat srccc, const Mat temppp, const Mat histtt)
+/**
+ * @brief calculate mutual information
+ * 
+ * @param srccc part of source image that overlaps with template image sliding window
+ * @param temppp template image
+ * @param histtt histogram matrix
+ * @param row_sum sum of each row of histogram matrix
+ * @param col_sum sum of each column of histogram matrix
+ * @param total sum of histogram matrix
+ * @param Pst_list stores semantic labels, corresponding Pst value and attribution to MI
+ * @return float MI score
+ */
+float MI_calculator(const Mat srccc, const Mat temppp, const Mat histtt, const vector<float> row_sum, const vector<float> col_sum, float total, vector<float> &Pst_list)
     {
         clock_t start, end; //timing
         double t_diff; //timing
         float I=0.;
-        // float total = sum(histtt)[0];
-        // cout<<"total: "<<total<<endl;
-
-
-        // I=0.;
 
         //go through source image and template image, add the value of each pixel to corresponding position in matrix his
         for (int i=0; i<temppp.rows; i++)
             {
                 for (int j=0; j<temppp.cols; j++)
                 {
-                    // start = clock();
-                    //Ps: probability distribution of reference image
+                    //Ps: probability distribution of source image
                     //Pt: probability distribution of template image
                     //Pst: joint probability distribution
-                    float Ps, Pt, Pst, total; 
-                    uchar P1 = temppp.at<uchar>(i,j); //temppp: template image matrix
-                    uchar P2 = srccc.at<uchar>(i,j); //srccc: source image matrix
-                    Pst = float(histtt.at<int>(P1,P2)); //histtt: hitogram matrix
-                    Pt = sum(histtt.row(P1))[0];
-                    Ps = sum(histtt.col(P2))[0];
-                    total = Pt + Ps - Pst;
-                    if((Pst * total) < (Ps*Pt)){
-                        cout<<"Pst: "<<Pst<<endl;
-                        cout<<"total: "<<total<<endl;
-                        cout<<"Ps: "<<Ps<<endl;
-                        cout<<"Pt: "<<Pt<<endl;
-                        exit(1);
+                    float Ps, Pt, Pst, subtotal; 
+                    uchar P1 = temppp.at<uchar>(i,j);
+                    uchar P2 = srccc.at<uchar>(i,j); 
+                    Pst = float(histtt.at<int>(P1,P2));
+                    Pt = row_sum[P1];
+                    Ps = col_sum[P2];
+                    subtotal = Pt;
+                    // subtotal = Ps + Pt - Pst;
+            
+                    if(P1==P2 && count(Pst_list.begin(), Pst_list.end(), Pst)==0){
+                        cout<<int(P1)<<": "<<Pst<<": "<<Pst/subtotal<<endl;
+                        Pst_list.push_back(Pst);
+                        // if(P1==7){
+                        //     cout<<int(P1)<<": "<<log(Pst/subtotal)<<endl;
+                        // }
                     }
-                    // total = Pt + Ps - Pst;
-                    I += Pst/total * log(Pst*total/(Ps*Pt)); //total:sum of histogram matrix elements
-                    // end = clock(); //stop timing
-                    // t_diff=(double)(end-start)/CLOCKS_PER_SEC; //calculate time difference
-                    // printf("one loop  %f \n", t_diff);
+                    
+                    // if(P1==7 && P2==8){
+                    //     cout<<"(7,8): "<<log(Pst/total)<<endl;
+                    //     exit(0);
+                    // }
+                    // I += Pst/subtotal * log(Pst/subtotal/(Ps/subtotal*Pt/subtotal)); //total:sum of histogram matrix elements
+                    
+                    // if(P1!=7 && P2!=7){
+                    //     I += log(Pst/subtotal);
+                    // }
+                    I += Pst/subtotal;
+                    
                 }
             }
         
@@ -77,7 +88,6 @@ int main(int argc, char **argv)
     double val_max, val_min;
 
 
-    ////////////////////////////////////////////////////////////
     //get histMat
     start=clock();
     FileStorage fs_read;
@@ -93,44 +103,93 @@ int main(int argc, char **argv)
     t_diff=(double)(end-start)/CLOCKS_PER_SEC; //calculate time difference
     printf("time to extract histMat %f \n", t_diff);
     minMaxLoc(histMat, &val_max, &val_min, NULL, NULL);
-    cout<<val_max<<endl;
-    cout<<val_min<<endl;
-    int total = sum(histMat)[0];
-    cout<<total<<endl;
+    cout<<"histMat min: "<<val_max<<endl;
+    cout<<"histMat_max: "<<val_min<<endl;
+    // cout<<histMat.colRange(0,11).rowRange(0,11)<<endl;
+    // cout<<histMat.row(7)<<endl;
+    // cout<<histMat.col(7)<<endl;
 
-    // cout<<histMat.colRange(0,30).rowRange(0,30)<<endl;
-    //get all the picture names in segmentation folder
+
+
+    //get sums of rows and columns of histMat
+    vector<float> row_sum;
+    for(int i=0; i<histMat.rows; i++){
+        row_sum.push_back(sum(histMat.row(i))[0]);
+    }
+
+    vector<float> col_sum;
+    for(int i=0; i<histMat.cols; i++){
+        col_sum.push_back(sum(histMat.col(i))[0]);
+    }
+
+    float total = sum(histMat)[0];
+    cout<<"histMat total: "<<total<<endl;
+
+    vector<float> Pst_list;
+
+
+    //get all the picture names in segmentation folder and raw image folder
     string seg_path=kitti360+"2013_05_28_drive_0007_sync_image_00/segmentation";
     vector<cv::String> fn_seg;
     glob(seg_path, fn_seg, false);
 
+    string raw_path = kitti360+"data_2d_raw/2013_05_28_drive_0007_sync/image_00/data_rect";
+    vector<cv::String> fn_raw;
+    glob(raw_path, fn_raw, false);
 
-    // for(int i=0; i<fn_seg.size()-1; i++){
-    for(int i=801; i<802; i++){
-        
+
+    //perform template matching image by image
+    for(int i=1901; i<fn_seg.size()-1; i++){
+        //read segmentation image and rgb image, select template and build result matrix
         Mat ref_Mat = imread(fn_seg[i], IMREAD_GRAYSCALE);
-        Mat src_Mat = imread(fn_seg[i+2], IMREAD_GRAYSCALE);
-        if (src_Mat.empty() || ref_Mat.empty())
+        Mat src_Mat = imread(fn_seg[i+1], IMREAD_GRAYSCALE);
+        Mat ref_color = imread(fn_raw[i], IMREAD_COLOR);
+        Mat src_color = imread(fn_raw[i+1], IMREAD_COLOR);
+        if (src_Mat.empty() || ref_Mat.empty() || ref_color.empty() || src_color.empty())
         {
             cout << "failed to read image" << endl;
             return EXIT_FAILURE;
         }
-        Rect r(int(imgW*5/8)+30,int(imgH/3)-20, 3,5);
+        // Rect r(int(imgW*5/8)+30,int(imgH/3)-20, 50,80); //801
+        Rect r(int(imgW/2)+80,int(imgH/2)-80, 60,80); //1901
+        // Rect r(int(imgW/2)+30,int(imgH/2)-20, 60,80); //101
+        // Rect r(int(imgW/2)+30,int(imgH/2)-150, 60,80);
+        // Rect r(int(imgW/2)+90,int(imgH/2)-70, 30,40);
         Mat temp_Mat = ref_Mat(r);
         Mat src(src_Mat.size(),CV_8UC1);
         src_Mat.convertTo(src, CV_8UC1);
         Mat temp(temp_Mat.size(),CV_8UC1);
         temp_Mat.convertTo(temp, CV_8UC1);
         Mat result = Mat::zeros(src.rows - temp.rows +1,src.cols - temp.cols +1, CV_32FC1);
-        // cout<<result.size<<endl;
 
-        imshow("template", temp);
+
+        //show template in rgb image
+        rectangle(ref_color, r, Scalar(255, 0, 255), 2, LINE_AA);
+        imshow("template_color", ref_color);
+        rectangle(ref_Mat, r, Scalar(255, 0, 255), 2, LINE_AA);
+        imshow("template", ref_Mat);
         waitKey(0);
-
         cout<<"program continues"<<endl;
 
+        // Mat diagMat = histMat.colRange(0,20).rowRange(0,20).diag();
+        // cout<<diagMat<<endl;
 
-        //calculate I for each element of result
+
+        //show the number of each semantic label in template
+        vector<uchar> template_labels_vec;
+        set<uchar> template_labels_set;
+        for(int i=0; i<temp.rows; i++){
+            for(int j=0; j<temp.cols; j++){
+                template_labels_vec.push_back(temp.at<uchar>(i,j));
+                template_labels_set.insert(temp.at<uchar>(i,j));
+            }
+        }
+        for(set<uchar>::iterator it = template_labels_set.begin(); it!=template_labels_set.end(); it++){
+            cout<<int(*it)<<" : "<<count(template_labels_vec.begin(), template_labels_vec.end(), *it)<<endl;
+        }
+
+
+        //calculate I for each element of result matrix
         int counter;
         int interval=1000;
         
@@ -141,52 +200,58 @@ int main(int argc, char **argv)
             start = clock();
             for (int j=0; j<result.cols; j++)
             {
-                // start = clock();
                 Mat src_part(src, cv::Rect(j,i,temp.cols, temp.rows));
-                MI = MI_calculator(src_part, temp, histMat);
+                MI = MI_calculator(src_part, temp, histMat, row_sum, col_sum, total, Pst_list);
                 result.at<float>(i,j) = MI;
-                // end = clock(); //stop timing
-                // t_diff=(double)(end-start)/CLOCKS_PER_SEC; //calculate time difference
-                // printf("time to calculate one MI value %f \n", t_diff);
                 if (j-counter==0){
-                    // cout<<ff%100<<endl;
                     end=clock();
                     t_diff=(double)(end-start)/CLOCKS_PER_SEC;
                     counter +=interval;
                     start=clock();
-                    cout<<"expected time left: "<<t_diff/interval * ((result.cols-j) + result.cols* (result.rows-i-1))<<endl;
+                    // cout<<"expected time left: "<<t_diff/interval * ((result.cols-j) + result.cols* (result.rows-i-1))<<endl;
                 }
-
             }
         }
         
-        
-        // cout <<"result: "<<result<<endl;
 
         //draw a rectangle on source image at the position where mutial information is the highest
-        minMaxLoc(result, &val_max, &val_min, NULL, &pt_max);
+        minMaxLoc(result, &val_min, &val_max, NULL, &pt_max);
         cout<<val_max<<endl;
         cout<<val_min<<endl;
         cout<<pt_max.x<<" , "<<pt_max.y<<endl;
         Mat dst;
         src.copyTo(dst);
         rectangle(dst, Rect(pt_max.x, pt_max.y, temp.cols, temp.rows), Scalar(255, 0, 255), 2, LINE_AA);
-
+        rectangle(src_color, Rect(pt_max.x, pt_max.y, temp.cols, temp.rows), Scalar(255, 0, 255), 2, LINE_AA);
         // scale the value in result matrix to 0 to 255
         Mat norm_result;
         normalize(result, norm_result, 0, 255, NORM_MINMAX);
+        norm_result.convertTo(norm_result,CV_8UC1);
+
 
         //convert result to heatmap form
         Mat result_copy = result.clone();
         Mat heatMap;
-        minMaxLoc(result_copy, &val_min, &val_max, NULL, NULL);
-        float mid_val = float((val_max - val_min)*2/3 + val_min);
-        Mat mask0 = result_copy<mid_val;
-        result_copy.setTo(0,mask0);
-        Mat mask = result_copy>mid_val;
-        normalize(result_copy, heatMap, 0, 255, NORM_MINMAX, -1,mask);
+        // minMaxLoc(result_copy, &val_min, &val_max, NULL, NULL);
+        // float mid_val = float((val_max - val_min)/2 + val_min);
+        // // float mid_val = 0.;
+        // Mat mask0 = result_copy<mid_val;
+        // result_copy.setTo(0,mask0);
+        // Mat mask = result_copy>mid_val;
+        // normalize(result_copy, heatMap, 0, 255, NORM_MINMAX, -1,mask);
+        normalize(result_copy, heatMap, 0, 255, NORM_MINMAX);
         heatMap.convertTo(heatMap, CV_8UC1);
         applyColorMap(heatMap, heatMap, COLORMAP_JET);
+
+        float threshold = float((val_max-val_min)*0.99+val_min);
+        for(int i=0; i<result.rows; i++){
+            for(int j=0; j<result.cols; j++){
+                if(result.at<float>(i,j)>threshold){
+                    // rectangle(raw_image, Rect(j, i, 50, 80), Scalar(255, 0, 0), 1, LINE_AA);
+                    drawMarker(src_color, Point(j,i), Scalar(0,0,255), MARKER_TILTED_CROSS, 5, 1,8);
+                }
+                }
+        }
 
 
         //save matrices to xml file
@@ -197,14 +262,10 @@ int main(int argc, char **argv)
         fs_write<<"temp"<<temp;
         fs_write<<"heatMap"<<heatMap;
         fs_write.release();
-        
-
 
 
         //display the images
-        imshow("temp", temp);
-        imshow("match",dst);
-        imshow("norm_result",norm_result);
+        imshow("match",src_color);
         imshow("heatMap", heatMap);
 
 
@@ -212,11 +273,12 @@ int main(int argc, char **argv)
         vector<int> compression_params;
         compression_params.push_back(IMWRITE_PNG_COMPRESSION);
         compression_params.push_back(3);
-
         bool flag = false;
-        flag = imwrite(kitti360 + "MI_images/result.png", norm_result, compression_params);
-        flag = imwrite(kitti360 + "MI_images/temp.png", temp, compression_params);
-        flag = imwrite(kitti360 + "MI_images/match.png", dst, compression_params);
+        flag = imwrite(kitti360 + "MI_images/color_temp_"+to_string(i)+".png", ref_color, compression_params);
+        flag = imwrite(kitti360 + "MI_images/color_match_"+to_string(i)+".png", src_color, compression_params);
+        // flag = imwrite(kitti360 + "MI_images/norm_result_"+to_string(i)+".png", norm_result, compression_params);
+        // flag = imwrite(kitti360 + "MI_images/temp_"+to_string(i)+".png", temp, compression_params);
+        // flag = imwrite(kitti360 + "MI_images/match_"+to_string(i)+".png", dst, compression_params);
         flag = imwrite(kitti360 + "MI_images/heatMap_"+to_string(i)+".png", heatMap, compression_params);
 
         // Mat re = imread(kitti360 + "MI_images/result.png", IMREAD_GRAYSCALE);

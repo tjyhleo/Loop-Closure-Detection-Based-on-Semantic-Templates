@@ -28,14 +28,29 @@ int main(){
 
 // fs2.release();
 
-double m[3][4] = 
-	{ {1, 2, 3,4},
-	  {5,6,7,8},
-	  {9,10,11,12},
+int m[4][4] = 
+	{ {1, 2, 3,3},
+	  {2,1,3,3},
+	  {3,2,1,1},
+	  {3,2,1,1}
 	};
     // cout <<"array m: "<< m <<endl;
-    cv::Mat testMat(3,4,CV_64F,m);
-    cout << testMat << endl;
+cv::Mat testMat(4,4,CV_32SC1,m);
+cout << testMat << endl;
+
+Mat histMat = Mat::ones(1,4,CV_32FC1);
+
+
+// histMat += testMat.col(1).t();
+
+// cout<<histMat<<endl;
+testMat.convertTo(testMat, CV_32FC1);
+cout<<testMat.col(0).t() /2.0<<endl;
+
+Mat P1Mat = testMat.col(0).t() /2.0;
+histMat +=testMat.col(0).t() /2.0;
+cout<<histMat<<endl;
+
 
 // Mat a(3,4,CV_64FC1);
 
@@ -62,8 +77,8 @@ double m[3][4] =
 // a=a*c;
 // testMat.copyTo(a.rowRange(0,2));
 
-cout<<a<<endl;
-cout<<testMat<<endl;
+// cout<<a<<endl;
+// cout<<testMat<<endl;
 // cout<<b<<endl;
 
 

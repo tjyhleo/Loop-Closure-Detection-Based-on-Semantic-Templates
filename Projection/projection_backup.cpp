@@ -112,8 +112,9 @@ void readPLY(Mat& pcMat, string str){
         }
         //go through the points one by one
         for (size_t i = 0; i < cloud->points.size (); ++i){
-        // for (size_t i = 0; i < 50000; ++i){
-            Mat point_mat = (Mat_<double>(1,6) << cloud->points[i].x, cloud->points[i].y, cloud->points[i].z, 
+        // for (size_t i = 0; i < 5000; ++i){
+            Mat point_mat = (Mat_<double>(1,9) << cloud->points[i].x, cloud->points[i].y, cloud->points[i].z, 
+                            cloud->points[i].x, cloud->points[i].y, cloud->points[i].z,
                             double(cloud->points[i].b), double(cloud->points[i].g), double(cloud->points[i].r));
                             // cloud->points[i].x, cloud->points[i].y, cloud->points[i].z);      
             pcMat.push_back(point_mat);
@@ -132,7 +133,7 @@ void readPLY(Mat& pcMat, string str){
  * @return true means there are points in front of camera in this frame
  * @return false means no point are infront of camera in this frame
  */
-bool world2image(const Mat pcMattt, Mat& Pimg, const Mat intrinsicMat, const int frameId){
+bool world2image(const Mat pcMattt, Mat& Pimggg, const Mat intrinsicMat, const int frameId){
     bool flag; //returned flag
     clock_t start, end; //timing
     double t_diff; //timing
@@ -196,9 +197,9 @@ bool world2image(const Mat pcMattt, Mat& Pimg, const Mat intrinsicMat, const int
     start=clock();
     Mat filter2;
     filter2 = filter1.colRange(0,non_zeros);
-    filter2.copyTo(Pimg);
-    Pimg.row(0) = filter2.row(0)/filter2.row(2);
-    Pimg.row(1) = filter2.row(1)/filter2.row(2);
+    filter2.copyTo(Pimggg);
+    Pimggg.row(0) = filter2.row(0)/filter2.row(2);
+    Pimggg.row(1) = filter2.row(1)/filter2.row(2);
     end = clock(); //stop timing
     t_diff=(double)(end-start)/CLOCKS_PER_SEC; //calculate time difference
     // printf("time for phase3 %f \n", t_diff);
@@ -234,7 +235,7 @@ int main(){
     readPLY(pcMat, "static"); //read static ply files
     // readPLY(pcMat, "dynamic"); //read dynamic ply files
     pcMat = pcMat.t(); //transpose pcMat
-    // cout<<"pc_Mat size "<<pcMat.size<<endl;
+    cout<<"pc_Mat size "<<pcMat.size<<endl;
     txtRead("calibration/perspective.txt", "P_rect_00", intrinsicMat);//read intrinsic matrix
 
 
@@ -277,8 +278,8 @@ int main(){
 
 
     //loop through frame by frame
-    for(int i=0; i<frameSequence.size()-1; i++){
-    // for(int i=0; i<1; i++){
+    // for(int i=801; i<frameSequence.size()-1; i++){
+    for(int i=801; i<803; i++){
         frameId = frameSequence[i];
         cout<<"frame: "<<frameId<<endl;
 
@@ -300,21 +301,59 @@ int main(){
         printf("time for world2image %f \n", t_diff);
         
 
+
+
         //extract points within image frame
+        Mat point_frame1;
         start = clock();
         for(int i=0; i<P_img.cols; i++){
             if(P_img.at<double>(0,i)>tempWl && P_img.at<double>(0,i)<tempWr){
                 if(P_img.at<double>(1,i)>tempHu && P_img.at<double>(1,i)<tempHd){
-                    int u = cvRound(P_img.at<double>(0,i));
-                    int v = cvRound(P_img.at<double>(1,i));
-                    //only extract points that project onto image first
-                    if(imgMat.at<Vec4d>(v-tempHu,u-tempWl)[0]==0 || P_img.at<double>(2,i)<imgMat.at<Vec4d>(v-tempHu,u-tempWl)[0]){
-                        P_img(Range(2,6),Range(i,i+1)).copyTo(imgMat.at<Vec4d>(v-tempHu,u-tempWl));  
-                    }
+                    point_frame1.push_back(P_img.col(i).t());
                     
                 }
             }
         }
+        point_frame1 = point_frame1.t();
+        cout<<point_frame1.size<<endl;
+        point_frame1 = point_frame1.rowRange(3,9);
+        cout<<"point_frame1.size: "<<point_frame1.size<<endl;
+
+
+        Mat P_img2;
+        flag = world2image(point_frame1, P_img2, intrinsicMat,frameSequence[i+1]);
+        if(flag==false){
+            cout<<"no point projected to frame "<< frameId<<endl;
+            noProj_frames+=1;
+            continue;
+        }
+        cout<<"line 330 reached"<<endl;
+
+        //extract points within image frame
+        start = clock();
+        for(int i=0; i<P_img2.cols; i++){
+            int u = cvRound(P_img2.at<double>(0,i));
+            int v = cvRound(P_img2.at<double>(1,i));
+            //only extract points that project onto image first
+            if(imgMat.at<Vec4d>(v-tempHu,u-tempWl)[0]==0 || P_img2.at<double>(2,i)<imgMat.at<Vec4d>(v-tempHu,u-tempWl)[0]){
+                P_img2(Range(2,6),Range(i,i+1)).copyTo(imgMat.at<Vec4d>(v-tempHu,u-tempWl));  
+            }
+
+        }
+        // start = clock();
+        // for(int i=0; i<P_img2.cols; i++){
+        //     if(P_img2.at<double>(0,i)>tempWl && P_img2.at<double>(0,i)<tempWr){
+        //         if(P_img2.at<double>(1,i)>tempHu && P_img2.at<double>(1,i)<tempHd){
+        //             int u = cvRound(P_img.at<double>(0,i));
+        //             int v = cvRound(P_img.at<double>(1,i));
+        //             //only extract points that project onto image first
+        //             if(imgMat.at<Vec4d>(v-tempHu,u-tempWl)[0]==0 || P_img2.at<double>(2,i)<imgMat.at<Vec4d>(v-tempHu,u-tempWl)[0]){
+        //                 P_img2(Range(2,6),Range(i,i+1)).copyTo(imgMat.at<Vec4d>(v-tempHu,u-tempWl));  
+        //             }
+                    
+        //         }
+        //     }
+        // }
 
         end = clock();
         t_diff=(double)(end-start)/CLOCKS_PER_SEC;

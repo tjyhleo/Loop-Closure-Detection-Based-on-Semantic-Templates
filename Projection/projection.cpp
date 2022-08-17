@@ -120,7 +120,7 @@ void readPLY(Mat& pcMat, string str){
 }
 
 
-bool world2image(const Mat pcMatclone, Mat& Pimg, const Mat intrinsicMat, const int frameId){
+bool world2image(const Mat pcMatclone, Mat& Pimggg, const Mat intrinsicMat, const int frameId){
     bool flag;
     clock_t start, end; //timing
     double t_diff; //timing
@@ -208,13 +208,13 @@ bool world2image(const Mat pcMatclone, Mat& Pimg, const Mat intrinsicMat, const 
     start=clock();
     // cout<<non_zeros<<endl;
     // filter1.colRange(0,non_zeros).copyTo(Pimg);
-    filter2.copyTo(Pimg);
+    filter2.copyTo(Pimggg);
     // cout<<"this is passed"<<endl;
     // cout<<Pimg.size<<endl;
     // cout<<Pimg.dims<<endl;
     // Pimg = filter1.colRange(0,non_zeros).clone();
-    Pimg.row(0) = filter2.row(0)/filter2.row(2);
-    Pimg.row(1) = filter2.row(1)/filter2.row(2);
+    Pimggg.row(0) = filter2.row(0)/filter2.row(2);
+    Pimggg.row(1) = filter2.row(1)/filter2.row(2);
     end = clock(); //stop timing
     t_diff=(double)(end-start)/CLOCKS_PER_SEC; //calculate time difference
     // printf("time for phase3 %f \n", t_diff);
@@ -244,7 +244,7 @@ int main(){
     Mat intrinsicMat; // intrinsic matrix
     Mat pcMat; //matrix that stores pointcloud information
     Mat histMat = Mat::ones(300,300,CV_32SC1); //big histogram matrix
-    int histSum; //sum of all the values in histMat
+    int histSum=0; //sum of all the values in histMat
     vector<uchar> seg_class; //segmentation classes
     bool flag; //flag indicating if there are valid points projected to a certain frame
 
@@ -300,8 +300,7 @@ int main(){
 
     //loop through frame by frame
     for(int i=0; i<frameSequence.size()-1; i++){
-    // for(int i=2450; i<2550; i++){
-    // for(int i=0; i<1; i++){
+    // for(int i=802; i<805; ++i){
         frameId = frameSequence[i];
         cout<<"frame: "<<frameId<<endl;
 
@@ -441,26 +440,30 @@ int main(){
         // cout<<"val_max: "<<val_max<<endl;
         frame1.convertTo(frame1, CV_8UC1);
         frame2.convertTo(frame2,CV_8UC1);
-        
 
         
-        for(int i; i<frame_uv.cols; i++){
-            uchar p1 = frame1.at<uchar>(frame_uv.at<ushort>(1,i), frame_uv.at<ushort>(0,i));
-            uchar p2 = frame2.at<uchar>(frame_uv.at<ushort>(3,i), frame_uv.at<ushort>(2,i));
-            histMat.at<int>(p1,p2) +=1;
+        for(int index=0; index<frame_uv.cols; index++){
+            uchar p1 = frame1.at<uchar>(frame_uv.at<ushort>(1,index), frame_uv.at<ushort>(0,index));
+            uchar p2 = frame2.at<uchar>(frame_uv.at<ushort>(3,index), frame_uv.at<ushort>(2,index));
+            histMat.at<int>(p1,p2) += 1;
         }
+        cout<<"histMat(7,7)"<<histMat.at<int>(7,7)<<endl;
 
-        histSum += frame_uv.cols;
+        FileStorage fs("histMat.xml", FileStorage::WRITE);
+        fs<<"histMat"<<histMat;
+        fs.release();   
+
+        
+        histSum = histSum+ frame_uv.cols;
         cout<<"histSum: "<<histSum<<endl;
+        
 
-        valid_frames +=1;
+        valid_frames = valid_frames+1;
         cout<<"valid frames: "<<valid_frames<<endl;
         cout<<"skipped frames: "<<skipped_frames<<endl;
         cout<<"empty frames: "<<noProj_frames<<endl;
 
-        FileStorage fs("histMat.xml", FileStorage::WRITE);
-        fs<<"histMat"<<histMat;
-        fs.release();
+        
         
         
         
@@ -497,7 +500,7 @@ int main(){
 
     ////////////////////////////////////////////////////////////////
     
-
+    
 
     return 0;
 }

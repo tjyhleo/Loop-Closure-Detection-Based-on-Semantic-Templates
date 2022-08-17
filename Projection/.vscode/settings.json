@@ -7,6 +7,9 @@
         "array": "cpp",
         "string_view": "cpp",
         "iosfwd": "cpp",
-        "functional": "cpp"
+        "functional": "cpp",
+        "vector": "cpp",
+        "cmath": "cpp",
+        "deque": "cpp"
     }
 }
