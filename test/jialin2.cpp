@@ -13,6 +13,25 @@ using namespace cv;
 // cout<<mat2<<enl;
 // fs.release();
 
+void trying(Mat testMatttt, Mat a){
+	// testMatttt.row(1) = testMatttt.row(2);
+	// a = testMatttt.row(0).clone();
+	a.row(0)= testMatttt.row(0);
+	// testMatttt.row(0).copyTo(a);
+	// testMatttt.row(0).copyTo(a.row(0));
+	// a = a-2;
+	// Mat b=a;
+	// b=b-2;
+	cout<<"a: "<<a<<endl;
+	cout<<"testMat: "<<testMatttt<<endl;
+
+	// return a;
+	// outputMat = a;
+	// return outputMat;
+
+
+}
+
 
 int main(){
 // Mat mat2;
@@ -36,20 +55,29 @@ int m[4][4] =
 	};
     // cout <<"array m: "<< m <<endl;
 cv::Mat testMat(4,4,CV_32SC1,m);
+
 cout << testMat << endl;
 
-Mat histMat = Mat::ones(1,4,CV_32FC1);
+// for (int i=0; i<3; i++){
+// 	Mat testMat = Mat::ones(i+3,i+3, CV_16FC1);
+// 	cout<<testMat<<endl;
+// 	// trying(testMat);
+// }
+// Mat a = trying(testMat);
+Mat a=Mat::ones(1,4,CV_32FC1)*(1e-6);
+// a = a *10;
+// trying(testMat, a);
+
+// a=a-2;
+cout<<a<<endl;
 
 
-// histMat += testMat.col(1).t();
+// cout<<testMat<<endl;
 
-// cout<<histMat<<endl;
-testMat.convertTo(testMat, CV_32FC1);
-cout<<testMat.col(0).t() /2.0<<endl;
 
-Mat P1Mat = testMat.col(0).t() /2.0;
-histMat +=testMat.col(0).t() /2.0;
-cout<<histMat<<endl;
+
+
+
 
 
 // Mat a(3,4,CV_64FC1);

@@ -56,17 +56,6 @@ CMAKE_BINARY_DIR = /home/jialin/Documents/VSC_Projects/Projection/build
 #=============================================================================
 # Targets provided globally by CMake.
 
-# Special rule for the target rebuild_cache
-rebuild_cache:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake to regenerate build system..."
-	/usr/bin/cmake -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
-.PHONY : rebuild_cache
-
-# Special rule for the target rebuild_cache
-rebuild_cache/fast: rebuild_cache
-
-.PHONY : rebuild_cache/fast
-
 # Special rule for the target edit_cache
 edit_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "No interactive CMake dialog available..."
@@ -77,6 +66,17 @@ edit_cache:
 edit_cache/fast: edit_cache
 
 .PHONY : edit_cache/fast
+
+# Special rule for the target rebuild_cache
+rebuild_cache:
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake to regenerate build system..."
+	/usr/bin/cmake -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
+.PHONY : rebuild_cache
+
+# Special rule for the target rebuild_cache
+rebuild_cache/fast: rebuild_cache
+
+.PHONY : rebuild_cache/fast
 
 # The main all target
 all: cmake_check_build_system
@@ -111,17 +111,17 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named MI_post
+# Target rules for targets named ConPro
 
 # Build rule for target.
-MI_post: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 MI_post
-.PHONY : MI_post
+ConPro: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 ConPro
+.PHONY : ConPro
 
 # fast build rule for target.
-MI_post/fast:
-	$(MAKE) -f CMakeFiles/MI_post.dir/build.make CMakeFiles/MI_post.dir/build
-.PHONY : MI_post/fast
+ConPro/fast:
+	$(MAKE) -f CMakeFiles/ConPro.dir/build.make CMakeFiles/ConPro.dir/build
+.PHONY : ConPro/fast
 
 #=============================================================================
 # Target rules for targets named projection
@@ -149,6 +149,33 @@ MI/fast:
 	$(MAKE) -f CMakeFiles/MI.dir/build.make CMakeFiles/MI.dir/build
 .PHONY : MI/fast
 
+ConPro.o: ConPro.cpp.o
+
+.PHONY : ConPro.o
+
+# target to build an object file
+ConPro.cpp.o:
+	$(MAKE) -f CMakeFiles/ConPro.dir/build.make CMakeFiles/ConPro.dir/ConPro.cpp.o
+.PHONY : ConPro.cpp.o
+
+ConPro.i: ConPro.cpp.i
+
+.PHONY : ConPro.i
+
+# target to preprocess a source file
+ConPro.cpp.i:
+	$(MAKE) -f CMakeFiles/ConPro.dir/build.make CMakeFiles/ConPro.dir/ConPro.cpp.i
+.PHONY : ConPro.cpp.i
+
+ConPro.s: ConPro.cpp.s
+
+.PHONY : ConPro.s
+
+# target to generate assembly for a file
+ConPro.cpp.s:
+	$(MAKE) -f CMakeFiles/ConPro.dir/build.make CMakeFiles/ConPro.dir/ConPro.cpp.s
+.PHONY : ConPro.cpp.s
+
 MI.o: MI.cpp.o
 
 .PHONY : MI.o
@@ -175,33 +202,6 @@ MI.s: MI.cpp.s
 MI.cpp.s:
 	$(MAKE) -f CMakeFiles/MI.dir/build.make CMakeFiles/MI.dir/MI.cpp.s
 .PHONY : MI.cpp.s
-
-MI_post.o: MI_post.cpp.o
-
-.PHONY : MI_post.o
-
-# target to build an object file
-MI_post.cpp.o:
-	$(MAKE) -f CMakeFiles/MI_post.dir/build.make CMakeFiles/MI_post.dir/MI_post.cpp.o
-.PHONY : MI_post.cpp.o
-
-MI_post.i: MI_post.cpp.i
-
-.PHONY : MI_post.i
-
-# target to preprocess a source file
-MI_post.cpp.i:
-	$(MAKE) -f CMakeFiles/MI_post.dir/build.make CMakeFiles/MI_post.dir/MI_post.cpp.i
-.PHONY : MI_post.cpp.i
-
-MI_post.s: MI_post.cpp.s
-
-.PHONY : MI_post.s
-
-# target to generate assembly for a file
-MI_post.cpp.s:
-	$(MAKE) -f CMakeFiles/MI_post.dir/build.make CMakeFiles/MI_post.dir/MI_post.cpp.s
-.PHONY : MI_post.cpp.s
 
 projection.o: projection.cpp.o
 
@@ -236,17 +236,17 @@ help:
 	@echo "... all (the default if no target is provided)"
 	@echo "... clean"
 	@echo "... depend"
-	@echo "... rebuild_cache"
 	@echo "... edit_cache"
-	@echo "... MI_post"
+	@echo "... rebuild_cache"
+	@echo "... ConPro"
 	@echo "... projection"
 	@echo "... MI"
+	@echo "... ConPro.o"
+	@echo "... ConPro.i"
+	@echo "... ConPro.s"
 	@echo "... MI.o"
 	@echo "... MI.i"
 	@echo "... MI.s"
-	@echo "... MI_post.o"
-	@echo "... MI_post.i"
-	@echo "... MI_post.s"
 	@echo "... projection.o"
 	@echo "... projection.i"
 	@echo "... projection.s"

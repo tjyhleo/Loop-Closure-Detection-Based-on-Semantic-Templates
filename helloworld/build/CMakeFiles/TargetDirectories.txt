@@ -1,3 +1,0 @@
-/home/jialin/VSC_Projects/helloworld/build/CMakeFiles/rebuild_cache.dir
-/home/jialin/VSC_Projects/helloworld/build/CMakeFiles/DisplayImage.dir
-/home/jialin/VSC_Projects/helloworld/build/CMakeFiles/edit_cache.dir

@@ -24,54 +24,55 @@ string kitti360 = "/media/jialin/045E58135E57FC3C/UBUNTU/KITTI360/";
  * @param Pst_list stores semantic labels, corresponding Pst value and attribution to MI
  * @return float MI score
  */
-float MI_calculator(const Mat srccc, const Mat temppp, const Mat histtt, const vector<float> row_sum, const vector<float> col_sum, float total, vector<float> &Pst_list)
+float MI_calculator(const Mat temppp, const Mat srccc, const Mat histtt, const int N)
     {
         clock_t start, end; //timing
         double t_diff; //timing
         float I=0.;
+        float Pst, Pt, Ps;
 
-        //go through source image and template image, add the value of each pixel to corresponding position in matrix his
-        for (int i=0; i<temppp.rows; i++)
-            {
-                for (int j=0; j<temppp.cols; j++)
-                {
-                    //Ps: probability distribution of source image
-                    //Pt: probability distribution of template image
-                    //Pst: joint probability distribution
-                    float Ps, Pt, Pst, subtotal; 
-                    uchar P1 = temppp.at<uchar>(i,j);
-                    uchar P2 = srccc.at<uchar>(i,j); 
-                    Pst = float(histtt.at<int>(P1,P2));
-                    Pt = row_sum[P1];
-                    Ps = col_sum[P2];
-                    subtotal = Pt;
-                    // subtotal = Ps + Pt - Pst;
-            
-                    if(P1==P2 && count(Pst_list.begin(), Pst_list.end(), Pst)==0){
-                        cout<<int(P1)<<": "<<Pst<<": "<<Pst/subtotal<<endl;
-                        Pst_list.push_back(Pst);
-                        // if(P1==7){
-                        //     cout<<int(P1)<<": "<<log(Pst/subtotal)<<endl;
-                        // }
-                    }
-                    
-                    // if(P1==7 && P2==8){
-                    //     cout<<"(7,8): "<<log(Pst/total)<<endl;
-                    //     exit(0);
-                    // }
-                    // I += Pst/subtotal * log(Pst/subtotal/(Ps/subtotal*Pt/subtotal)); //total:sum of histogram matrix elements
-                    
-                    // if(P1!=7 && P2!=7){
-                    //     I += log(Pst/subtotal);
-                    // }
-                    I += Pst/subtotal;
-                    
-                }
+        for(int i=0; i<histtt.rows; ++i){
+            for(int j=0; j<histtt.cols; ++j){
+                Pst = float(histtt.at<float>(i,j))/N;
+                Pt = float(temppp.at<float>(0,i))/N;
+                Ps = float(srccc.at<float>(0,j))/N;
+                
+                I += Pst * log(Pst/(Ps*Pt));
             }
+        }
         
         return I;
 
     }
+
+
+void hist_builder(const Mat input_mat, const Mat input_mat2, Mat& output_mat, 
+            const Mat hist_mat, const vector<Mat>row_mat_vec, const Mat row_mat[20][20]){
+    // assert(input_mat.size==input_mat2.size);
+    uchar P1;
+    uchar P2;
+    if(input_mat2.empty()){
+        for(int i=0; i<input_mat.rows; ++i){
+            for(int j=0; j<input_mat.cols; ++j){
+                P1 = input_mat.at<uchar>(i,j);
+                output_mat.at<float>(0,P1) += 1;
+                // output_mat += row_mat_vec[P1];
+            }
+        }
+    }
+    else{
+        for(int i=0; i<input_mat.rows; ++i){
+            for(int j=0; j<input_mat.cols; ++j){
+                P1 = input_mat.at<uchar>(i,j);
+                P2 = input_mat2.at<uchar>(i,j);
+                output_mat.at<float>(P1,P2) += 1;
+                // output_mat += row_mat[P1][P2];
+
+            }
+        }
+    }
+
+}
 
 int main(int argc, char **argv)
 {
@@ -87,7 +88,6 @@ int main(int argc, char **argv)
     Point pt_max;
     double val_max, val_min;
 
-
     //get histMat
     start=clock();
     FileStorage fs_read;
@@ -99,59 +99,83 @@ int main(int argc, char **argv)
     }
     fs_read["histMat"]>>histMat;
     fs_read.release();
+    histMat = histMat.colRange(0,20).rowRange(0,20).clone();
+    histMat.convertTo(histMat, CV_32FC1);
     end = clock(); //stop timing
     t_diff=(double)(end-start)/CLOCKS_PER_SEC; //calculate time difference
     printf("time to extract histMat %f \n", t_diff);
-    minMaxLoc(histMat, &val_max, &val_min, NULL, NULL);
-    cout<<"histMat min: "<<val_max<<endl;
-    cout<<"histMat_max: "<<val_min<<endl;
-    // cout<<histMat.colRange(0,11).rowRange(0,11)<<endl;
-    // cout<<histMat.row(7)<<endl;
-    // cout<<histMat.col(7)<<endl;
 
 
-
-    //get sums of rows and columns of histMat
-    vector<float> row_sum;
+    vector<Mat> row_mat_vec(histMat.rows);
     for(int i=0; i<histMat.rows; i++){
-        row_sum.push_back(sum(histMat.row(i))[0]);
+        Mat &temperal = row_mat_vec[i];
+        temperal = histMat.row(i) /sum(histMat.row(i))[0];
     }
 
-    vector<float> col_sum;
-    for(int i=0; i<histMat.cols; i++){
-        col_sum.push_back(sum(histMat.col(i))[0]);
+    Mat row_mat[20][20];
+    for(int i=0; i<20; i++){
+        for(int j=0; j<20; j++){
+            Mat P1 = row_mat_vec[i].t();
+            Mat P2 = row_mat_vec[j];
+            row_mat[i][j] = P1 * P2;
+        }
     }
 
-    float total = sum(histMat)[0];
-    cout<<"histMat total: "<<total<<endl;
+    
 
-    vector<float> Pst_list;
+
 
 
     //get all the picture names in segmentation folder and raw image folder
-    string seg_path=kitti360+"2013_05_28_drive_0007_sync_image_00/segmentation";
+    // string seg_path=kitti360+"2013_05_28_drive_0007_sync_image_00/segmentation";
+    string seg_path=kitti360+"data_2d_raw/2013_05_28_drive_0010_sync/image_00/segmentation";
     vector<cv::String> fn_seg;
     glob(seg_path, fn_seg, false);
 
-    string raw_path = kitti360+"data_2d_raw/2013_05_28_drive_0007_sync/image_00/data_rect";
+    // string raw_path = kitti360+"data_2d_raw/2013_05_28_drive_0007_sync/image_00/data_rect";
+    string raw_path = kitti360+"data_2d_raw/2013_05_28_drive_0010_sync/image_00/data_rect";
     vector<cv::String> fn_raw;
     glob(raw_path, fn_raw, false);
 
+    string segrgb_path = kitti360+"data_2d_raw/2013_05_28_drive_0010_sync/image_00/segmentation_rgb";
+    vector<cv::String> fn_segrgb;
+    glob(segrgb_path, fn_segrgb, false);
+
+
+
 
     //perform template matching image by image
-    for(int i=1901; i<fn_seg.size()-1; i++){
+    // for(int i=0; i<fn_seg.size()-1; i++){
+    for(int i=0; i<3800; i+=5){
+        cout<<"current image"<<i<<endl;
         //read segmentation image and rgb image, select template and build result matrix
         Mat ref_Mat = imread(fn_seg[i], IMREAD_GRAYSCALE);
-        Mat src_Mat = imread(fn_seg[i+1], IMREAD_GRAYSCALE);
+        Mat src_Mat = imread(fn_seg[i], IMREAD_GRAYSCALE);
         Mat ref_color = imread(fn_raw[i], IMREAD_COLOR);
-        Mat src_color = imread(fn_raw[i+1], IMREAD_COLOR);
-        if (src_Mat.empty() || ref_Mat.empty() || ref_color.empty() || src_color.empty())
-        {
+        Mat src_color = imread(fn_raw[i], IMREAD_COLOR);
+        Mat ref_segrgb = imread(fn_segrgb[i],IMREAD_COLOR);
+        Mat src_segrgb = imread(fn_segrgb[i],IMREAD_COLOR);
+        if (src_Mat.empty() || ref_Mat.empty() || ref_color.empty() || src_color.empty() 
+            || ref_segrgb.empty() || src_segrgb.empty()){
             cout << "failed to read image" << endl;
             return EXIT_FAILURE;
         }
+
+
+        // int x = 700;
+        // int y = 160;
+        // int w = 100;
+        // int h = 80;
+        int x = 680;
+        int y = 160;
+        int w = 40;
+        int h = 60;
+        x= x-w/2;
+        y= y-h/2;
         // Rect r(int(imgW*5/8)+30,int(imgH/3)-20, 50,80); //801
-        Rect r(int(imgW/2)+80,int(imgH/2)-80, 60,80); //1901
+        Rect r(x,y, w,h);
+        // Rect r(int(imgW/2)+80,int(imgH/2)-80, 10,20); //1901
+        // Rect r(int(imgW/2)+100,int(imgH/2)-70, 10,20);
         // Rect r(int(imgW/2)+30,int(imgH/2)-20, 60,80); //101
         // Rect r(int(imgW/2)+30,int(imgH/2)-150, 60,80);
         // Rect r(int(imgW/2)+90,int(imgH/2)-70, 30,40);
@@ -163,31 +187,23 @@ int main(int argc, char **argv)
         Mat result = Mat::zeros(src.rows - temp.rows +1,src.cols - temp.cols +1, CV_32FC1);
 
 
-        //show template in rgb image
-        rectangle(ref_color, r, Scalar(255, 0, 255), 2, LINE_AA);
-        imshow("template_color", ref_color);
-        rectangle(ref_Mat, r, Scalar(255, 0, 255), 2, LINE_AA);
-        imshow("template", ref_Mat);
-        waitKey(0);
-        cout<<"program continues"<<endl;
-
-        // Mat diagMat = histMat.colRange(0,20).rowRange(0,20).diag();
-        // cout<<diagMat<<endl;
+        // // show template in rgb image
+        // rectangle(ref_color, r, Scalar(255, 0, 255), 2, LINE_AA);
+        // imshow("template_color", ref_color);
+        // rectangle(ref_segrgb, r, Scalar(255, 0, 255), 2, LINE_AA);
+        // imshow("template_rgb", ref_segrgb);
+        // waitKey(0);
+        // cout<<"program continues"<<endl;
 
 
-        //show the number of each semantic label in template
-        vector<uchar> template_labels_vec;
-        set<uchar> template_labels_set;
-        for(int i=0; i<temp.rows; i++){
-            for(int j=0; j<temp.cols; j++){
-                template_labels_vec.push_back(temp.at<uchar>(i,j));
-                template_labels_set.insert(temp.at<uchar>(i,j));
-            }
-        }
-        for(set<uchar>::iterator it = template_labels_set.begin(); it!=template_labels_set.end(); it++){
-            cout<<int(*it)<<" : "<<count(template_labels_vec.begin(), template_labels_vec.end(), *it)<<endl;
-        }
+        //build histogram for template image
+        Mat temp_hist = Mat::ones(1,20, CV_32FC1)*(1e-6);
+        Mat empty_mat;
+        hist_builder(temp, empty_mat, temp_hist, histMat, row_mat_vec, row_mat);
+        int N = temp.cols * temp.rows;
+        cout<<"N: "<<N<<endl;
 
+        
 
         //calculate I for each element of result matrix
         int counter;
@@ -201,7 +217,25 @@ int main(int argc, char **argv)
             for (int j=0; j<result.cols; j++)
             {
                 Mat src_part(src, cv::Rect(j,i,temp.cols, temp.rows));
-                MI = MI_calculator(src_part, temp, histMat, row_sum, col_sum, total, Pst_list);
+
+                // Mat src_hist = Mat::ones(1,20, CV_32FC1)*(1e-6);
+                // hist_builder(src_part, empty_mat, src_hist, histMat, row_mat_vec, row_mat);
+                
+
+                Mat temp_src_hist = Mat::ones(20,20, CV_32FC1)*(1e-6);
+                hist_builder(temp, src_part, temp_src_hist, histMat, row_mat_vec, row_mat);
+
+                Mat src_hist = Mat::zeros(1,20, CV_32FC1);
+                for (int i=0; i<20; i++){
+                    src_hist.at<float>(0,i) = sum(temp_src_hist.col(i))[0];
+                }
+
+
+                // cout<<sum(temp_src_hist.row(0))[0] - sum(temp_hist.col(0))[0]<<endl;
+                // exit(0);
+
+
+                MI = MI_calculator(temp_hist, src_hist, temp_src_hist, N);
                 result.at<float>(i,j) = MI;
                 if (j-counter==0){
                     end=clock();
@@ -216,88 +250,118 @@ int main(int argc, char **argv)
 
         //draw a rectangle on source image at the position where mutial information is the highest
         minMaxLoc(result, &val_min, &val_max, NULL, &pt_max);
-        cout<<val_max<<endl;
-        cout<<val_min<<endl;
-        cout<<pt_max.x<<" , "<<pt_max.y<<endl;
-        Mat dst;
-        src.copyTo(dst);
-        rectangle(dst, Rect(pt_max.x, pt_max.y, temp.cols, temp.rows), Scalar(255, 0, 255), 2, LINE_AA);
+        // cout<<val_max<<endl;
+        // cout<<val_min<<endl;
+        // cout<<pt_max.x<<" , "<<pt_max.y<<endl;
+ 
+        rectangle(src_segrgb, Rect(pt_max.x, pt_max.y, temp.cols, temp.rows), Scalar(255, 0, 255), 2, LINE_AA);
         rectangle(src_color, Rect(pt_max.x, pt_max.y, temp.cols, temp.rows), Scalar(255, 0, 255), 2, LINE_AA);
-        // scale the value in result matrix to 0 to 255
-        Mat norm_result;
-        normalize(result, norm_result, 0, 255, NORM_MINMAX);
-        norm_result.convertTo(norm_result,CV_8UC1);
+        
+        
+        if(abs(x-pt_max.x)>30 || abs(y-pt_max.y)>30){
+        // if(8>7){
+            cout<<"match too far away: "<<i<<endl;
+            cout<<abs(x-pt_max.x)<<", "<<abs(y-pt_max.y)<<endl;
+            rectangle(ref_segrgb, r, Scalar(255, 0, 255), 2, LINE_AA);
+            rectangle(src_segrgb, Rect(pt_max.x, pt_max.y, temp.cols, temp.rows), Scalar(255, 0, 255), 2, LINE_AA);
+            float threshold = float((val_max-val_min)*0.99+val_min);
+            for(int i=0; i<result.rows; i++){
+                for(int j=0; j<result.cols; j++){
+                    if(result.at<float>(i,j)>threshold){
+                        // drawMarker(src_color, Point(j,i), Scalar(0,0,255), MARKER_TILTED_CROSS, 5, 1,8);
+                        drawMarker(src_segrgb, Point(j,i), Scalar(255,255,255), MARKER_TILTED_CROSS, 5, 1,8);
+                    }
+                    }
+            }
+            // imshow("template_rgb", ref_segrgb);
+            // imshow("src_rgb", src_segrgb);
 
+            // //convert result to heatmap form
+            Mat result_copy = result.clone();
+            Mat heatMap;
+            normalize(result_copy, heatMap, 0, 255, NORM_MINMAX);
+            heatMap.convertTo(heatMap, CV_8UC1);
+            applyColorMap(heatMap, heatMap, COLORMAP_JET);
 
-        //convert result to heatmap form
-        Mat result_copy = result.clone();
-        Mat heatMap;
-        // minMaxLoc(result_copy, &val_min, &val_max, NULL, NULL);
-        // float mid_val = float((val_max - val_min)/2 + val_min);
-        // // float mid_val = 0.;
-        // Mat mask0 = result_copy<mid_val;
-        // result_copy.setTo(0,mask0);
-        // Mat mask = result_copy>mid_val;
-        // normalize(result_copy, heatMap, 0, 255, NORM_MINMAX, -1,mask);
-        normalize(result_copy, heatMap, 0, 255, NORM_MINMAX);
-        heatMap.convertTo(heatMap, CV_8UC1);
-        applyColorMap(heatMap, heatMap, COLORMAP_JET);
-
-        float threshold = float((val_max-val_min)*0.99+val_min);
-        for(int i=0; i<result.rows; i++){
-            for(int j=0; j<result.cols; j++){
-                if(result.at<float>(i,j)>threshold){
-                    // rectangle(raw_image, Rect(j, i, 50, 80), Scalar(255, 0, 0), 1, LINE_AA);
-                    drawMarker(src_color, Point(j,i), Scalar(0,0,255), MARKER_TILTED_CROSS, 5, 1,8);
-                }
-                }
+            vector<int> compression_params;
+            compression_params.push_back(IMWRITE_PNG_COMPRESSION);
+            compression_params.push_back(3);
+            bool flag = false;
+            // flag = imwrite(kitti360 + "MI_images/strange_images/"+to_string(i)+"_color_temp.png", ref_color, compression_params);
+            // flag = imwrite(kitti360 + "MI_images/strange_images/"+to_string(i)+"_color_match.png", src_color, compression_params);
+            flag = imwrite(kitti360 + "MI_images/strange_images/"+to_string(i)+"_heatmap.png", heatMap, compression_params);
+            flag = imwrite(kitti360 + "MI_images/strange_images/"+to_string(i)+"_seg_temp.png", ref_segrgb, compression_params);
+            flag = imwrite(kitti360 + "MI_images/strange_images/"+to_string(i)+"_seg_match.png", src_segrgb, compression_params);
+            // waitKey(0);
         }
 
 
-        //save matrices to xml file
-        FileStorage fs_write("MIMat.xml", FileStorage::WRITE);
-        fs_write<<"result"<<result;
-        fs_write<<"norm_result"<<norm_result;
-        fs_write<<"dst"<<dst;
-        fs_write<<"temp"<<temp;
-        fs_write<<"heatMap"<<heatMap;
-        fs_write.release();
 
-
-        //display the images
-        imshow("match",src_color);
-        imshow("heatMap", heatMap);
-
-
-        //save images in CV_8U png form
-        vector<int> compression_params;
-        compression_params.push_back(IMWRITE_PNG_COMPRESSION);
-        compression_params.push_back(3);
-        bool flag = false;
-        flag = imwrite(kitti360 + "MI_images/color_temp_"+to_string(i)+".png", ref_color, compression_params);
-        flag = imwrite(kitti360 + "MI_images/color_match_"+to_string(i)+".png", src_color, compression_params);
-        // flag = imwrite(kitti360 + "MI_images/norm_result_"+to_string(i)+".png", norm_result, compression_params);
-        // flag = imwrite(kitti360 + "MI_images/temp_"+to_string(i)+".png", temp, compression_params);
-        // flag = imwrite(kitti360 + "MI_images/match_"+to_string(i)+".png", dst, compression_params);
-        flag = imwrite(kitti360 + "MI_images/heatMap_"+to_string(i)+".png", heatMap, compression_params);
-
-        // Mat re = imread(kitti360 + "MI_images/result.png", IMREAD_GRAYSCALE);
-        // imshow("reread_result", re);
+        // //show histogram of best match
+        // Mat src_part(src, cv::Rect(85,143,temp.cols, temp.rows));
+        // Mat temp_src_hist = Mat::ones(20,20, CV_32FC1);
+        // hist_builder(temp, src_part, temp_src_hist, histMat, row_sum);
+        // cout<<temp_src_hist<<endl;
         
-        // try
-        // {
-        //     flag = imwrite(kitti360 + "MI_images/result.png", result, compression_params);
+        
+        // // scale the value in result matrix to 0 to 255
+        // Mat norm_result;
+        // normalize(result, norm_result, 0, 255, NORM_MINMAX);
+        // norm_result.convertTo(norm_result,CV_8UC1);
 
-        // }
-        // catch (const cv::Exception& ex)
-        // {
-        //     fprintf(stderr, "Exception converting image to PNG format: %s\n", ex.what());
-        // }
-        // if (flag)
-        //     printf("Saved PNG file with alpha data.\n");
-        // else
-        //     printf("ERROR: Can't save PNG file.\n");
 
-        waitKey(0);
+        // //convert result to heatmap form
+        // Mat result_copy = result.clone();
+        // Mat heatMap;
+        // // minMaxLoc(result_copy, &val_min, &val_max, NULL, NULL);
+        // // float mid_val = float((val_max - val_min)/2 + val_min);
+        // // // float mid_val = 0.;
+        // // Mat mask0 = result_copy<mid_val;
+        // // result_copy.setTo(0,mask0);
+        // // Mat mask = result_copy>mid_val;
+        // // normalize(result_copy, heatMap, 0, 255, NORM_MINMAX, -1,mask);
+        // normalize(result_copy, heatMap, 0, 255, NORM_MINMAX);
+        // heatMap.convertTo(heatMap, CV_8UC1);
+        // applyColorMap(heatMap, heatMap, COLORMAP_JET);
+
+        // float threshold = float((val_max-val_min)*0.95+val_min);
+        // for(int i=0; i<result.rows; i++){
+        //     for(int j=0; j<result.cols; j++){
+        //         if(result.at<float>(i,j)>threshold){
+        //             // rectangle(raw_image, Rect(j, i, 50, 80), Scalar(255, 0, 0), 1, LINE_AA);
+        //             drawMarker(src_color, Point(j,i), Scalar(0,0,255), MARKER_TILTED_CROSS, 5, 1,8);
+        //             drawMarker(src_segrgb, Point(j,i), Scalar(255,255,255), MARKER_TILTED_CROSS, 5, 1,8);
+        //         }
+        //         }
+        // }
+
+
+        // //save matrices to xml file
+        // FileStorage fs_write("MIMat.xml", FileStorage::WRITE);
+        // fs_write<<"result"<<result;
+        // fs_write<<"norm_result"<<norm_result;
+        // fs_write<<"temp"<<temp;
+        // fs_write<<"heatMap"<<heatMap;
+        // fs_write.release();
+
+
+        // //display the images
+        // // imshow("match",src_color);
+        // // imshow("seg_match", src_segrgb);
+        // // imshow("heatMap", heatMap);
+
+
+        // //save images in CV_8U png form
+        // vector<int> compression_params;
+        // compression_params.push_back(IMWRITE_PNG_COMPRESSION);
+        // compression_params.push_back(3);
+        // bool flag = false;
+        // // flag = imwrite(kitti360 + "MI_images/"+to_string(i)+"_color_temp.png", ref_color, compression_params);
+        // // flag = imwrite(kitti360 + "MI_images/"+to_string(i)+"_color_match.png", src_color, compression_params);
+        // flag = imwrite(kitti360 + "MI_images/"+to_string(i)+"_seg_temp.png", ref_segrgb, compression_params);
+        // flag = imwrite(kitti360 + "MI_images/"+to_string(i)+"_seg_match.png", src_segrgb, compression_params);
+        // flag = imwrite(kitti360 + "MI_images/"+to_string(i)+"_heatMap.png", heatMap, compression_params);
+
+        // waitKey(0);
     }
 }

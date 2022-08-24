@@ -103,15 +103,15 @@ int main(){
     cv::Mat testMat(3,4,CV_64F,m);
     cout << testMat << endl;
 
+    Mat mm[20][20];
+    for (int i=0; i<20; i++){
+        for (int j=0; j<20; j++){
+            mm[i][j] = Mat::ones(i,j,CV_16SC1);
+        }
+    }
 
-    // Mat ff(3,4,testMat.type());
-    // testMat.col(1).copyTo(ff.col(1));
-    // testMat.col(1) = ff.col(1);
-    // ff.col(1) = testMat.col(1);
-    Mat ff = testMat.rowRange(0,3);
-    Mat dd = ff.row(0)+1;
-    testMat.row(0) = dd;
-    cout<<testMat<<endl;
+    cout<<mm[1][3]<<endl;
+
     
 
     // Mat mat = Mat::eye(Size(12,12), CV_8UC1);

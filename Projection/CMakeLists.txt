@@ -7,10 +7,10 @@ link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 add_executable(projection projection.cpp)
 add_executable(MI MI.cpp)
-add_executable(MI_post MI_post.cpp)
+add_executable(ConPro ConPro.cpp)
 target_link_libraries(projection ${OpenCV_LIBS} ${PCL_LIBRARIES})
 target_link_libraries(MI ${OpenCV_LIBS} ${PCL_LIBRARIES})
-target_link_libraries(MI_post ${OpenCV_LIBS} ${PCL_LIBRARIES})
+target_link_libraries(ConPro ${OpenCV_LIBS} ${PCL_LIBRARIES})
 
 
 # cmake_minimum_required(VERSION 2.6 FATAL_ERROR)
