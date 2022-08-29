@@ -36,8 +36,8 @@ int PatchFinder::CalcSearchLevelAndWarpMatrix(MapPoint &p,
 {
   // Calc point pos in new view camera frame
   // Slightly dumb that we re-calculate this here when the tracker's already done this!
-  Vector<3> v3Cam = se3CFromW * p.v3WorldPos;
-  double dOneOverCameraZ = 1.0 / v3Cam[2];
+  Vector<3> v3Cam = se3CFromW * p.v3WorldPos;    //把点的坐标从世界坐标系变为了相机坐标系
+  double dOneOverCameraZ = 1.0 / v3Cam[2];  //1 /z 就是Normalize嘛
   // Project the source keyframe's one-pixel-right and one-pixel-down vectors into the current view
   Vector<3> v3MotionRight = se3CFromW.get_rotation() * p.v3PixelRight_W;
   Vector<3> v3MotionDown = se3CFromW.get_rotation() * p.v3PixelDown_W;

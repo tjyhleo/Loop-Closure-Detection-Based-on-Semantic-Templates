@@ -54,7 +54,7 @@ float MI_calculator(const Mat temppp, const Mat srccc, const Mat histtt, const i
 
 
 void hist_builder(const Mat input_mat, const Mat input_mat2, Mat& output_mat, 
-            const Mat hist_mat, const vector<Mat>row_mat_vec, const Mat row_mat[20][20]){
+            const Mat hist_mat, const vector<Mat>row_mat_vec, const Mat row_mat[50][50]){
     // assert(input_mat.size==input_mat2.size);
     uchar P1;
     uchar P2;
@@ -81,25 +81,9 @@ void hist_builder(const Mat input_mat, const Mat input_mat2, Mat& output_mat,
 
 }
 
-
-int main(int argc, char **argv)
-{
-    clock_t start, end; //timing
-    double t_diff; //timing
-    int tempWl = 200;   //template width
-    int tempWr = 1200;
-    int tempHu = 80;   //template hight
-    int tempHd = 300;
-    int imgW=1408; //img width
-    int imgH=376;   //img height
-    float MI;
-    Point pt_max;
-    double val_max, val_min;
-
-    //get histMat
-    start=clock();
+void get_histMat(Mat &histMat){
     FileStorage fs_read;
-    Mat histMat;
+    double val_min, val_max;
     fs_read.open("histMat.xml", FileStorage::READ);
     if(!fs_read.isOpened()){
         cout<<"histMat.xml not opened"<<endl;
@@ -107,51 +91,55 @@ int main(int argc, char **argv)
     }
     fs_read["histMat"]>>histMat;
     fs_read.release();
-    histMat = histMat.colRange(0,20).rowRange(0,20).clone();
-    histMat.convertTo(histMat, CV_32FC1);
-    end = clock(); //stop timing
-    t_diff=(double)(end-start)/CLOCKS_PER_SEC; //calculate time difference
-    printf("time to extract histMat %f \n", t_diff);
+    histMat = histMat.rowRange(0,50).colRange(0,50).clone();
+    minMaxLoc(histMat, &val_min, &val_max, NULL, NULL);
+    cout<<"histMat min, max: "<<val_min<<", "<<val_max<<endl;
+}
 
-    // cout<<histMat<<endl;
 
-    // vector<float> row_sum;
-    // for(int i=0; i<histMat.rows; i++){
-    //     row_sum.push_back(sum(histMat.row(i))[0]);
-    // }
+int main(int argc, char **argv)
+{
+    clock_t start, end; //timing
+    double t_diff; //timing
+    int imgW=1408; //img width
+    int imgH=376;   //img height
+    float MI;
+    Point pt_max;
+    double val_max, val_min;
 
+    //get histMat
+    Mat histMat;
+    get_histMat(histMat);
+
+ 
     vector<Mat> row_mat_vec(histMat.rows);
     for(int i=0; i<histMat.rows; i++){
         Mat &temperal = row_mat_vec[i];
         temperal = histMat.row(i) /sum(histMat.row(i))[0];
     }
 
-    Mat row_mat[20][20];
-    for(int i=0; i<20; i++){
-        for(int j=0; j<20; j++){
+    Mat row_mat[50][50];
+    for(int i=0; i<50; i++){
+        for(int j=0; j<50; j++){
             Mat P1 = row_mat_vec[i].t();
             Mat P2 = row_mat_vec[j];
             row_mat[i][j] = P1 * P2;
         }
     }
 
-    
-
-
-
 
     //get all the picture names in segmentation folder and raw image folder
-    // string seg_path=kitti360+"2013_05_28_drive_0007_sync_image_00/segmentation";
-    string seg_path=kitti360+"data_2d_raw/2013_05_28_drive_0010_sync/image_00/segmentation";
+    // string seg_path=kitti360+"data_2d_raw/2013_05_28_drive_0010_sync/image_00/segmentation";
+    string seg_path=kitti360+"data_2d_semantics/train/2013_05_28_drive_0010_sync/image_00/semantic";
     vector<cv::String> fn_seg;
     glob(seg_path, fn_seg, false);
 
-    // string raw_path = kitti360+"data_2d_raw/2013_05_28_drive_0007_sync/image_00/data_rect";
     string raw_path = kitti360+"data_2d_raw/2013_05_28_drive_0010_sync/image_00/data_rect";
     vector<cv::String> fn_raw;
     glob(raw_path, fn_raw, false);
 
-    string segrgb_path = kitti360+"data_2d_raw/2013_05_28_drive_0010_sync/image_00/segmentation_rgb";
+    // string segrgb_path = kitti360+"data_2d_raw/2013_05_28_drive_0010_sync/image_00/segmentation_rgb";
+    string segrgb_path=kitti360+"data_2d_semantics/train/2013_05_28_drive_0010_sync/image_00/semantic_rgb";
     vector<cv::String> fn_segrgb;
     glob(segrgb_path, fn_segrgb, false);
 
@@ -160,7 +148,7 @@ int main(int argc, char **argv)
 
     //perform template matching image by image
     // for(int i=0; i<fn_seg.size()-1; i++){
-    for(int i=480; i<500; i+=10){
+    for(int i=0; i<500; i+=10){
         cout<<"current image"<<i<<endl;
         //read segmentation image and rgb image, select template and build result matrix
         Mat ref_Mat = imread(fn_seg[i], IMREAD_GRAYSCALE);

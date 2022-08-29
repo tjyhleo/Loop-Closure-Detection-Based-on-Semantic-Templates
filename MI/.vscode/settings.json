@@ -13,6 +13,7 @@
         "deque": "cpp",
         "complex": "cpp",
         "bitset": "cpp",
-        "string": "cpp"
+        "string": "cpp",
+        "list": "cpp"
     }
 }

@@ -35,9 +35,6 @@ float MI_calculator(const Mat srccc, const Mat temppp, const Mat histtt, const v
             {
                 for (int j=0; j<temppp.cols; j++)
                 {
-                    //Ps: probability distribution of source image
-                    //Pt: probability distribution of template image
-                    //Pst: joint probability distribution
                     float Ps, Pt, Pst, subtotal; 
                     uchar P1 = temppp.at<uchar>(i,j);
                     uchar P2 = srccc.at<uchar>(i,j); 
@@ -57,30 +54,92 @@ float MI_calculator(const Mat srccc, const Mat temppp, const Mat histtt, const v
                     //     exit(0);
                     // }
                     
-                    I += Pst/subtotal;
-                    
-                    
+                    I += Pst/subtotal;    
                 }
             }
-        
         return I;
-
     }
+
+vector<int> histCheck(Mat histMat){
+    vector<int> badRows;
+    for(int i = 0; i<histMat.rows; i++){
+        for (int j=0; j<histMat.cols; j++){
+            if(j!=i && histMat.at<int>(i,j)>histMat.at<int>(i,i)*0.5){
+                badRows.push_back(i);
+                // printf("%d",i);
+                // cout<<histMat.row(i)<<endl;
+                break;
+            }
+        }
+    }
+    return badRows;
+    
+}
+
+
+bool templateFinder(Mat ref_Mat, const int imgW, const int imgH, const int w, const int h, int &x, int &y, const vector<int> badRows ){
+    bool templateOkay = false;
+    for(int j=int(imgH*0.15); j<int(imgH*0.85) - h; j+=imgH/30){
+        for (int i=int(imgW*0.15); i<int(imgW*0.85) - w; i+=imgW/30){
+            Rect r(i,j, w,h);
+            Mat temp_Mat = ref_Mat(r);
+            temp_Mat.convertTo(temp_Mat, CV_8UC1);
+
+            set<uchar> sem_set;
+            vector<uchar> sem_vec;
+            for(int ii=0; ii<temp_Mat.rows; ii++){
+                for(int jj=0; jj<temp_Mat.cols; jj++){
+                    sem_set.insert(temp_Mat.at<uchar>(ii,jj));
+                    sem_vec.push_back(temp_Mat.at<uchar>(ii,jj));
+                }
+            }
+            
+            //there must be at least 3 semantic labels in the template
+            if(sem_set.size()<3){
+                // cout<<"("<<i<<" ,"<<j<<")"<<sem_set.size()<<endl;
+                continue;
+            }
+            //each type of the semantic label must occupy no more than 50% of the template
+            //and if there is a bad semantic label (in badRows), it cannot occupy more than 5% of the template 
+            for(set<uchar>::iterator it = sem_set.begin(); it!=sem_set.end(); it++){
+                int num = count(sem_vec.begin(), sem_vec.end(), *it);
+                if (num > w*h*0.5){
+                    templateOkay=false;
+                    break;
+                }
+                if(find(badRows.begin(), badRows.end(), *it) != badRows.end() && num>w*h*0.05){
+                    templateOkay=false;
+                    break;
+                }
+                else{
+                    templateOkay=true;
+                    x=i;
+                    y=j;
+                }
+            }
+
+            if(templateOkay==false){
+                continue;
+            }
+            
+        }
+        if(templateOkay==true){
+            break;
+        }
+    }
+    return templateOkay;
+}
 
 int main(int argc, char **argv)
 {
     clock_t start, end; //timing
     double t_diff; //timing
-    int tempWl = 200;   //template width
-    int tempWr = 1200;
-    int tempHu = 80;   //template hight
-    int tempHd = 300;
     int imgW=1408; //img width
     int imgH=376;   //img height
+    int imgSkip = 0;
     float MI;
     Point pt_max;
     double val_max, val_min;
-
 
     //get histMat
     start=clock();
@@ -99,10 +158,8 @@ int main(int argc, char **argv)
     minMaxLoc(histMat, &val_max, &val_min, NULL, NULL);
     cout<<"histMat min: "<<val_max<<endl;
     cout<<"histMat_max: "<<val_min<<endl;
-    // cout<<histMat.colRange(0,20).rowRange(0,20)<<endl;
-    // cout<<histMat.row(7)<<endl;
-    // cout<<histMat.col(7)<<endl;
-
+    histMat = histMat.colRange(0,20).rowRange(0,20).clone();
+    vector<int> badRows = histCheck(histMat);
 
 
     //get sums of rows and columns of histMat
@@ -145,11 +202,11 @@ int main(int argc, char **argv)
         cout<<"current image"<<i<<endl;
         //read segmentation image and rgb image, select template and build result matrix
         Mat ref_Mat = imread(fn_seg[i], IMREAD_GRAYSCALE);
-        Mat src_Mat = imread(fn_seg[i], IMREAD_GRAYSCALE);
+        Mat src_Mat = imread(fn_seg[i+1], IMREAD_GRAYSCALE);
         Mat ref_color = imread(fn_raw[i], IMREAD_COLOR);
-        Mat src_color = imread(fn_raw[i], IMREAD_COLOR);
+        Mat src_color = imread(fn_raw[i+1], IMREAD_COLOR);
         Mat ref_segrgb = imread(fn_segrgb[i],IMREAD_COLOR);
-        Mat src_segrgb = imread(fn_segrgb[i],IMREAD_COLOR);
+        Mat src_segrgb = imread(fn_segrgb[i+1],IMREAD_COLOR);
         if (src_Mat.empty() || ref_Mat.empty() || ref_color.empty() || src_color.empty() 
             || ref_segrgb.empty() || src_segrgb.empty())
         {
@@ -157,24 +214,22 @@ int main(int argc, char **argv)
             return EXIT_FAILURE;
         }
 
-        // int x = 700;
-        // int y = 160;
-        // int w = 100;
-        // int h = 80;
-        int x = 730;
-        int y = 160;
+        
         int w = 40;
         int h = 60;
-        x= x-w/2;
-        y= y-h/2;
+        int x,y;
+        bool templateOkay = templateFinder(ref_Mat, imgW, imgH, w, h, x, y, badRows);
+
+        if(templateOkay==false){
+            cout<<"image"<<to_string(i)<<"doesn't have a good template"<<endl;
+            imgSkip+=1;
+            cout<<"skipped img number: "<<imgSkip<<endl;
+            continue;
+        }
+        
+    
         // Rect r(int(imgW*5/8)+30,int(imgH/3)-20, 50,80); //801
         Rect r(x,y, w,h);
-        // Rect r(int(imgW*5/8)-10,int(imgH/3)+30, 150,80); //486
-        // Rect r(int(imgW*5/8)-10,int(imgH/3)-70, 150,80); //445
-        // Rect r(int(imgW/2)+80,int(imgH/2)-80, 60,80); //1901
-        // Rect r(int(imgW/2)+30,int(imgH/2)-20, 60,80); //101
-        // Rect r(int(imgW/2)+30,int(imgH/2)-150, 60,80);
-        // Rect r(int(imgW/2)+90,int(imgH/2)-70, 30,40);
         Mat temp_Mat = ref_Mat(r);
         Mat src(src_Mat.size(),CV_8UC1);
         src_Mat.convertTo(src, CV_8UC1);
@@ -240,7 +295,7 @@ int main(int argc, char **argv)
         // cout<<val_min<<endl;
         // cout<<pt_max.x<<" , "<<pt_max.y<<endl;
         
-        if(abs(x-pt_max.x)>30 || abs(y-pt_max.y)>30){
+        if(abs(x-pt_max.x)>150 || abs(y-pt_max.y)>30){
             cout<<"match too far away: "<<i<<endl;
             cout<<abs(x-pt_max.x)<<", "<<abs(y-pt_max.y)<<endl;
             rectangle(ref_segrgb, r, Scalar(255, 0, 255), 2, LINE_AA);

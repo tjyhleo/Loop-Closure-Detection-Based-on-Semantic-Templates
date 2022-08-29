@@ -12,80 +12,40 @@ using namespace cv;
 //path to kitti360 dataset
 string kitti360 = "/media/jialin/045E58135E57FC3C/UBUNTU/KITTI360/";
 
-/**
- * @brief calculate mutual information
- * 
- * @param srccc part of source image that overlaps with template image sliding window
- * @param temppp template image
- * @param histtt histogram matrix
- * @param row_sum sum of each row of histogram matrix
- * @param col_sum sum of each column of histogram matrix
- * @param total sum of histogram matrix
- * @param Pst_list stores semantic labels, corresponding Pst value and attribution to MI
- * @return float MI score
- */
-float MI_calculator(const Mat srccc, const Mat temppp, const Mat histtt, const vector<float> row_sum, const vector<float> col_sum, float total, vector<float> &Pst_list)
+
+float ConPro_calculator(const Mat srcMat, const Mat tempMat, const Mat ConProMat)
     {
-        clock_t start, end; //timing
-        double t_diff; //timing
         float I=0.;
-
-        //go through source image and template image, add the value of each pixel to corresponding position in matrix his
-        for (int i=0; i<temppp.rows; i++)
+        //go through source image and template image, add conpro of each pair of corresponding pixel
+        for (int i=0; i<srcMat.rows; i++)
             {
-                for (int j=0; j<temppp.cols; j++)
-                {
-                    //Ps: probability distribution of source image
-                    //Pt: probability distribution of template image
-                    //Pst: joint probability distribution
-                    float Ps, Pt, Pst, subtotal; 
-                    uchar P1 = temppp.at<uchar>(i,j);
-                    uchar P2 = srccc.at<uchar>(i,j); 
-                    Pst = float(histtt.at<int>(P1,P2));
-                    Pt = row_sum[P1];
-                    Ps = col_sum[P2];
-                    subtotal = Pt;
-                    // subtotal = Ps + Pt - Pst;
-            
-                    // if(Pst/subtotal>0.1 && count(Pst_list.begin(), Pst_list.end(), Pst)==0){
-                    //     cout<<int(P1)<<" , "<<int(P2)<<": "<<Pst<<": "<<Pst/subtotal<<endl;
-                    //     Pst_list.push_back(Pst);
-                    // }
-
-                    // if(P1==14 && P2==4){
-                    //     cout<<"14,2 "<<Pst/subtotal<<endl;
-                    //     exit(0);
-                    // }
-                    
-                    I += Pst/subtotal;
-                    
-                    
+                for (int j=0; j<srcMat.cols; j++)
+                { 
+                    uchar P1 = tempMat.at<uchar>(i,j);
+                    uchar P2 = srcMat.at<uchar>(i,j); 
+                    float ConPro = ConProMat.at<float>(P1,P2);
+                    I += ConPro; 
                 }
-            }
-        
+            }     
         return I;
-
     }
 
-int main(int argc, char **argv)
-{
-    clock_t start, end; //timing
-    double t_diff; //timing
-    int tempWl = 200;   //template width
-    int tempWr = 1200;
-    int tempHu = 80;   //template hight
-    int tempHd = 300;
-    int imgW=1408; //img width
-    int imgH=376;   //img height
-    float MI;
-    Point pt_max;
-    double val_max, val_min;
+
+vector<int> histCheck(Mat ConProMat){
+    vector<int> ignoreLabels;
+    for(int i = 0; i<ConProMat.rows; i++){
+        float s = ConProMat.at<float>(i,i);
+        if(s<0.7){
+            ignoreLabels.push_back(i);
+        }
+    }
+    return ignoreLabels;
+}
 
 
-    //get histMat
-    start=clock();
+void get_histMat(Mat &histMat){
     FileStorage fs_read;
-    Mat histMat;
+    double val_min, val_max;
     fs_read.open("histMat.xml", FileStorage::READ);
     if(!fs_read.isOpened()){
         cout<<"histMat.xml not opened"<<endl;
@@ -93,19 +53,153 @@ int main(int argc, char **argv)
     }
     fs_read["histMat"]>>histMat;
     fs_read.release();
-    end = clock(); //stop timing
-    t_diff=(double)(end-start)/CLOCKS_PER_SEC; //calculate time difference
-    printf("time to extract histMat %f \n", t_diff);
-    minMaxLoc(histMat, &val_max, &val_min, NULL, NULL);
-    cout<<"histMat min: "<<val_max<<endl;
-    cout<<"histMat_max: "<<val_min<<endl;
-    // cout<<histMat.colRange(0,20).rowRange(0,20)<<endl;
-    // cout<<histMat.row(7)<<endl;
-    // cout<<histMat.col(7)<<endl;
+    histMat = histMat.rowRange(0,50).colRange(0,50).clone();
+    minMaxLoc(histMat, &val_min, &val_max, NULL, NULL);
+    cout<<"histMat min, max: "<<val_min<<", "<<val_max<<endl;
+}
+
+bool templateFinder(Mat img, Mat ref_Mat, const int w, const int h, int &x, int &y, 
+                const vector<int> ignoreLabels, const vector<int>goodLabels,const vector<int>badLabels ){
+    bool templateOkay = false;
+    bool lowerRequire=false;
+    int imgH = ref_Mat.rows;
+    int imgW = ref_Mat.cols;
+    Mat goodTemp;
+    Mat okayTemp;
+    for(int j=int(imgH*0.15); j<int(imgH*0.85) - h; j+=imgH/40){
+        for (int i=int(imgW*0.15); i<int(imgW*0.85) - w; i+=imgW/40){
+            Rect r(i,j, w,h);
+            // rectangle(img, r, Scalar(255, 0, 255), 2, LINE_AA);
+            // imshow("template_rgb", img);
+            // waitKey(0);
+            Mat temp_Mat = ref_Mat(r);
+            
+            temp_Mat.convertTo(temp_Mat, CV_8UC1);
+            set<uchar> sem_set;
+            vector<uchar> sem_vec;
+            for(int ii=0; ii<temp_Mat.rows; ii++){
+                for(int jj=0; jj<temp_Mat.cols; jj++){
+                    sem_set.insert(temp_Mat.at<uchar>(ii,jj));
+                    sem_vec.push_back(temp_Mat.at<uchar>(ii,jj));
+                }
+            }
+            
+            //there must be at least 3 semantic labels in the template
+            if(sem_set.size()<3){
+                continue;
+            }
+            //there must be no bad semantic labels in template
+            bool badLabelExist=false;
+            for(set<uchar>::iterator it = sem_set.begin(); it!=sem_set.end(); it++){
+                if(find(ignoreLabels.begin(), ignoreLabels.end(), *it) != ignoreLabels.end()){
+                    badLabelExist=true;
+                    break;
+                };
+            }
+            if(badLabelExist==true){
+                continue;
+            }
+            //there must be at least 3 semantic labels that occupy more than 20% of the template
+            int counter=0;
+            for(set<uchar>::iterator it = sem_set.begin(); it!=sem_set.end(); it++){
+                int num = count(sem_vec.begin(), sem_vec.end(), *it);
+                if (num > w*h*0.2){
+                    counter+=1;
+                }
+            }
+            if (counter<3){
+                templateOkay=false;
+                continue;
+            }
+            else{
+                templateOkay=true;
+                x=i;
+                y=j;
+            }
+        }
+        if(templateOkay==true){
+            break;
+        }
+    }
+    return templateOkay;
+}
+
+void showSemNum(Mat temp){
+    vector<uchar> template_labels_vec;
+    set<uchar> template_labels_set;
+    for(int i=0; i<temp.rows; i++){
+        for(int j=0; j<temp.cols; j++){
+            template_labels_vec.push_back(temp.at<uchar>(i,j));
+            template_labels_set.insert(temp.at<uchar>(i,j));
+        }
+    }
+    for(set<uchar>::iterator it = template_labels_set.begin(); it!=template_labels_set.end(); it++){
+        cout<<int(*it)<<" : "<<count(template_labels_vec.begin(), template_labels_vec.end(), *it)<<endl;
+    }
+}
 
 
+void ManualCheck(Mat tempMat, Mat srcMat, Mat ConProMat){
+    Mat sem_count = Mat::zeros(80,80, CV_32SC1);
+    float I=0.;
+    for (int i=0; i<srcMat.rows; i++)
+        {
+            for (int j=0; j<srcMat.cols; j++)
+            { 
+                uchar P1 = tempMat.at<uchar>(i,j);
+                uchar P2 = srcMat.at<uchar>(i,j); 
+                float ConPro = ConProMat.at<float>(P1,P2);
+                I+=ConPro;
+                sem_count.at<int>(P1,P2) +=1;
+            }
+        } 
+    cout<<"ConPro: "<<I<<endl;
+    for(int i=0; i<sem_count.rows; i++){
+        for(int j=0; j<sem_count.cols; j++){
+            int count = sem_count.at<int>(i,j);
+            if(count>0){
+                cout<<i<<", "<<j<<": "<<count<<" * "<<ConProMat.at<float>(i,j)
+                    << "  "<<int(count* ConProMat.at<float>(i,j) / I *100) <<"%"<<endl;
+            }
+        }
+    }
+    
+}
 
-    //get sums of rows and columns of histMat
+vector<int> goodLabelFinder(){
+    int tra_sign = 20;
+    int tra_light = 19;
+    vector<int> goodLabels;
+    goodLabels.push_back(tra_sign);
+    goodLabels.push_back(tra_light);
+    return goodLabels;
+}
+
+vector<int> badLabelFinder(){
+    int vegetation = 21;
+    vector<int> badLabels;
+    badLabels.push_back(vegetation);
+    return badLabels;
+}
+
+int main(int argc, char **argv)
+{
+    clock_t start, end; //timing
+    double t_diff; //timing
+    float ConPro; //conditional probability
+    Point pt_max, pt_min;
+    double val_max, val_min;
+    int imgSkip;
+    vector<int> mismatch_vec;
+
+
+    //get histMat
+    Mat histMat;
+    get_histMat(histMat);
+
+    // cout<<histMat.diag()<<endl;
+
+    //get sums of histMat
     vector<float> row_sum;
     for(int i=0; i<histMat.rows; i++){
         row_sum.push_back(sum(histMat.row(i))[0]);
@@ -118,31 +212,43 @@ int main(int argc, char **argv)
 
     float total = sum(histMat)[0];
     cout<<"histMat total: "<<total<<endl;
+
+    Mat ConProMat = histMat.clone(); //conditional probability matrix
+    ConProMat.convertTo(ConProMat,CV_32FC1);
+    for(int i=0; i<ConProMat.rows; i++){
+        ConProMat.row(i) = ConProMat.row(i) / row_sum[i];
+    }
+    
+    vector<int> ignoreLabels = histCheck(ConProMat);
+    vector<int> goodLabels = goodLabelFinder();
+    vector<int> badLabels = badLabelFinder();
     
 
-    vector<float> Pst_list;
 
 
     //get all the picture names in segmentation folder and raw image folder
-    // string seg_path=kitti360+"2013_05_28_drive_0007_sync_image_00/segmentation";
-    string seg_path=kitti360+"data_2d_raw/2013_05_28_drive_0010_sync/image_00/segmentation";
+    string seg_path=kitti360+"data_2d_semantics/train/2013_05_28_drive_0010_sync/image_00/semantic";
+    // string seg_path=kitti360+"data_2d_raw/2013_05_28_drive_0010_sync/image_00/segmentation";
     vector<cv::String> fn_seg;
     glob(seg_path, fn_seg, false);
 
-    // string raw_path = kitti360+"data_2d_raw/2013_05_28_drive_0007_sync/image_00/data_rect";
     string raw_path = kitti360+"data_2d_raw/2013_05_28_drive_0010_sync/image_00/data_rect";
     vector<cv::String> fn_raw;
     glob(raw_path, fn_raw, false);
 
-    string segrgb_path = kitti360+"data_2d_raw/2013_05_28_drive_0010_sync/image_00/segmentation_rgb";
+    // string segrgb_path = kitti360+"data_2d_raw/2013_05_28_drive_0010_sync/image_00/segmentation_rgb";
+    string segrgb_path=kitti360+"data_2d_semantics/train/2013_05_28_drive_0010_sync/image_00/semantic_rgb";
     vector<cv::String> fn_segrgb;
     glob(segrgb_path, fn_segrgb, false);
 
 
     //perform template matching image by image
     // for(int i=369; i<fn_seg.size()-1; i++){
-    for(int i=100; i<450; i+=10){
-        cout<<"current image"<<i<<endl;
+    for(int i=125; i<2680; i+=5){
+        int str_len = fn_seg[i].length();
+        string frameId = fn_seg[i].substr(str_len-14, 10);
+        cout<<"current image: "<<frameId<<endl;
+
         //read segmentation image and rgb image, select template and build result matrix
         Mat ref_Mat = imread(fn_seg[i], IMREAD_GRAYSCALE);
         Mat src_Mat = imread(fn_seg[i+1], IMREAD_GRAYSCALE);
@@ -157,24 +263,22 @@ int main(int argc, char **argv)
             return EXIT_FAILURE;
         }
 
-        // int x = 700;
-        // int y = 160;
-        // int w = 100;
-        // int h = 80;
-        int x = 730;
-        int y = 160;
-        int w = 40;
-        int h = 60;
-        x= x-w/2;
-        y= y-h/2;
-        // Rect r(int(imgW*5/8)+30,int(imgH/3)-20, 50,80); //801
+        int w = 30;
+        int h = 30;
+        int x,y;
+        start = clock();
+        bool templateOkay = templateFinder(ref_segrgb, ref_Mat, w, h, x, y, ignoreLabels, goodLabels, badLabels);
+        end=clock();
+        t_diff=(double)(end-start)/CLOCKS_PER_SEC;
+        // cout<<"time to find template: "<<t_diff<<endl;
+        if(templateOkay==false){
+            cout<<"image"<<to_string(i)<<"doesn't have a good template"<<endl;
+            imgSkip+=1;
+            cout<<"skipped img number: "<<imgSkip<<endl;
+            continue;
+        }
+
         Rect r(x,y, w,h);
-        // Rect r(int(imgW*5/8)-10,int(imgH/3)+30, 150,80); //486
-        // Rect r(int(imgW*5/8)-10,int(imgH/3)-70, 150,80); //445
-        // Rect r(int(imgW/2)+80,int(imgH/2)-80, 60,80); //1901
-        // Rect r(int(imgW/2)+30,int(imgH/2)-20, 60,80); //101
-        // Rect r(int(imgW/2)+30,int(imgH/2)-150, 60,80);
-        // Rect r(int(imgW/2)+90,int(imgH/2)-70, 30,40);
         Mat temp_Mat = ref_Mat(r);
         Mat src(src_Mat.size(),CV_8UC1);
         src_Mat.convertTo(src, CV_8UC1);
@@ -191,38 +295,24 @@ int main(int argc, char **argv)
         // waitKey(0);
         // cout<<"program continues"<<endl;
 
-        // Mat diagMat = histMat.colRange(0,20).rowRange(0,20).diag();
-        // cout<<diagMat<<endl;
-
 
         // //show the number of each semantic label in template
-        // vector<uchar> template_labels_vec;
-        // set<uchar> template_labels_set;
-        // for(int i=0; i<temp.rows; i++){
-        //     for(int j=0; j<temp.cols; j++){
-        //         template_labels_vec.push_back(temp.at<uchar>(i,j));
-        //         template_labels_set.insert(temp.at<uchar>(i,j));
-        //     }
-        // }
-        // for(set<uchar>::iterator it = template_labels_set.begin(); it!=template_labels_set.end(); it++){
-        //     cout<<int(*it)<<" : "<<count(template_labels_vec.begin(), template_labels_vec.end(), *it)<<endl;
-        // }
+        // showSemNum(temp);
 
 
-        //calculate I for each element of result matrix
+        //calculate ConPro for each element of result matrix
         int counter;
         int interval=1000;
         
         for (int i=0; i<result.rows; i++)
         {
-            counter=interval;
-            
+            counter=interval;    
             start = clock();
             for (int j=0; j<result.cols; j++)
             {
                 Mat src_part(src, cv::Rect(j,i,temp.cols, temp.rows));
-                MI = MI_calculator(src_part, temp, histMat, row_sum, col_sum, total, Pst_list);
-                result.at<float>(i,j) = MI;
+                ConPro = ConPro_calculator(src_part, temp, ConProMat);
+                result.at<float>(i,j) = ConPro;
                 if (j-counter==0){
                     end=clock();
                     t_diff=(double)(end-start)/CLOCKS_PER_SEC;
@@ -240,12 +330,25 @@ int main(int argc, char **argv)
         // cout<<val_min<<endl;
         // cout<<pt_max.x<<" , "<<pt_max.y<<endl;
         
-        if(abs(x-pt_max.x)>30 || abs(y-pt_max.y)>30){
-            cout<<"match too far away: "<<i<<endl;
+        if(abs(x-pt_max.x)>50 || abs(y-pt_max.y)>50){
+            mismatch_vec.push_back(i);
+            cout<<"match too far away: "<<frameId<<endl;
             cout<<abs(x-pt_max.x)<<", "<<abs(y-pt_max.y)<<endl;
             rectangle(ref_segrgb, r, Scalar(255, 0, 255), 2, LINE_AA);
             rectangle(src_segrgb, Rect(pt_max.x, pt_max.y, temp.cols, temp.rows), Scalar(255, 0, 255), 2, LINE_AA);
             float threshold = float((val_max-val_min)*0.99+val_min);
+
+
+            cout<<"ManualCheck for ground truth position"<<endl;
+            Mat srcPart = src(r);
+            ManualCheck(temp, srcPart, ConProMat);
+
+            cout<<"ManualCheck for best match position"<<endl;
+            srcPart = src(Rect(pt_max.x, pt_max.y, w,h));
+            ManualCheck(temp, srcPart, ConProMat);
+            // waitKey(0); 
+
+
             for(int i=0; i<result.rows; i++){
                 for(int j=0; j<result.cols; j++){
                     if(result.at<float>(i,j)>threshold){
@@ -254,97 +357,36 @@ int main(int argc, char **argv)
                     }
                     }
             }
-            // imshow("template_rgb", ref_segrgb);
-            // imshow("src_rgb", src_segrgb);
+            
+            // minMaxLoc(result_copy, &val_min, &val_max, NULL, NULL);
+            // float mid_val = float((val_max - val_min)/2 + val_min);
+            // // float mid_val = 0.;
+            // Mat mask0 = result_copy<mid_val;
+            // result_copy.setTo(0,mask0);
+            // Mat mask = result_copy>mid_val;
+            // normalize(result_copy, heatMap, 0, 255, NORM_MINMAX, -1,mask);
+            //transfer result into heatmap
+            Mat heatMap;
+            normalize(result, heatMap, 0, 255, NORM_MINMAX);
+            heatMap.convertTo(heatMap, CV_8UC1);
+            applyColorMap(heatMap, heatMap, COLORMAP_JET);
+
 
             vector<int> compression_params;
             compression_params.push_back(IMWRITE_PNG_COMPRESSION);
             compression_params.push_back(3);
             bool flag = false;
-            // flag = imwrite(kitti360 + "MI_images/"+to_string(i)+"_color_temp.png", ref_color, compression_params);
-            // flag = imwrite(kitti360 + "MI_images/"+to_string(i)+"_color_match.png", src_color, compression_params);
-            flag = imwrite(kitti360 + "MI_images/strange_images/"+to_string(i)+"_seg_temp.png", ref_segrgb, compression_params);
-            flag = imwrite(kitti360 + "MI_images/strange_images/"+to_string(i)+"_seg_match.png", src_segrgb, compression_params);
+            // flag = imwrite(kitti360 + "MI_images/"+frameId+"_color_temp.png", ref_color, compression_params);
+            // flag = imwrite(kitti360 + "MI_images/"+frameId+"_color_match.png", src_color, compression_params);
+            flag = imwrite(kitti360 + "MI_images/strange_images/"+frameId+"_seg_temp.png", ref_segrgb, compression_params);
+            flag = imwrite(kitti360 + "MI_images/strange_images/"+frameId+"_seg_match.png", src_segrgb, compression_params);
+            flag = imwrite(kitti360 + "MI_images/strange_images/"+frameId+"_heatMap.png", heatMap, compression_params);
+            // imshow("template_rgb", ref_segrgb);
+            // imshow("src_rgb", src_segrgb);
             // waitKey(0);
         }
-
-
-
-        // rectangle(src_segrgb, Rect(pt_max.x, pt_max.y, temp.cols, temp.rows), Scalar(255, 0, 255), 2, LINE_AA);
-        // rectangle(src_color, Rect(pt_max.x, pt_max.y, temp.cols, temp.rows), Scalar(255, 0, 255), 2, LINE_AA);
-        // // scale the value in result matrix to 0 to 255
-        // Mat norm_result;
-        // normalize(result, norm_result, 0, 255, NORM_MINMAX);
-        // norm_result.convertTo(norm_result,CV_8UC1);
-
-
-        // //convert result to heatmap form
-        // Mat result_copy = result.clone();
-        // Mat heatMap;
-        // // minMaxLoc(result_copy, &val_min, &val_max, NULL, NULL);
-        // // float mid_val = float((val_max - val_min)/2 + val_min);
-        // // // float mid_val = 0.;
-        // // Mat mask0 = result_copy<mid_val;
-        // // result_copy.setTo(0,mask0);
-        // // Mat mask = result_copy>mid_val;
-        // // normalize(result_copy, heatMap, 0, 255, NORM_MINMAX, -1,mask);
-        // normalize(result_copy, heatMap, 0, 255, NORM_MINMAX);
-        // heatMap.convertTo(heatMap, CV_8UC1);
-        // applyColorMap(heatMap, heatMap, COLORMAP_JET);
-
-        // float threshold = float((val_max-val_min)*0.95+val_min);
-        // for(int i=0; i<result.rows; i++){
-        //     for(int j=0; j<result.cols; j++){
-        //         if(result.at<float>(i,j)>threshold){
-        //             // rectangle(raw_image, Rect(j, i, 50, 80), Scalar(255, 0, 0), 1, LINE_AA);
-        //             drawMarker(src_color, Point(j,i), Scalar(0,0,255), MARKER_TILTED_CROSS, 5, 1,8);
-        //             drawMarker(src_segrgb, Point(j,i), Scalar(255,255,255), MARKER_TILTED_CROSS, 5, 1,8);
-        //         }
-        //         }
-        // }
-
-
-        // // //save matrices to xml file
-        // // FileStorage fs_write("MIMat.xml", FileStorage::WRITE);
-        // // fs_write<<"result"<<result;
-        // // fs_write<<"norm_result"<<norm_result;
-        // // fs_write<<"temp"<<temp;
-        // // fs_write<<"heatMap"<<heatMap;
-        // // fs_write.release();
-
-
-        // //display the images
-        // imshow("match",src_color);
-        // imshow("seg_match", src_segrgb);
-        // imshow("heatMap", heatMap);
-
-
-        // //save images in CV_8U png form
-        // vector<int> compression_params;
-        // compression_params.push_back(IMWRITE_PNG_COMPRESSION);
-        // compression_params.push_back(3);
-        // bool flag = false;
-        // flag = imwrite(kitti360 + "MI_images/"+to_string(i)+"_color_temp.png", ref_color, compression_params);
-        // flag = imwrite(kitti360 + "MI_images/"+to_string(i)+"_color_match.png", src_color, compression_params);
-        // flag = imwrite(kitti360 + "MI_images/"+to_string(i)+"_seg_temp.png", ref_segrgb, compression_params);
-        // flag = imwrite(kitti360 + "MI_images/"+to_string(i)+"_seg_match.png", src_segrgb, compression_params);
-        // flag = imwrite(kitti360 + "MI_images/"+to_string(i)+"_heatMap.png", heatMap, compression_params);
-
-        
-        // // try
-        // // {
-        // //     flag = imwrite(kitti360 + "MI_images/result.png", result, compression_params);
-
-        // // }
-        // // catch (const cv::Exception& ex)
-        // // {
-        // //     fprintf(stderr, "Exception converting image to PNG format: %s\n", ex.what());
-        // // }
-        // // if (flag)
-        // //     printf("Saved PNG file with alpha data.\n");
-        // // else
-        // //     printf("ERROR: Can't save PNG file.\n");
-
-        // waitKey(0);
+    }
+    for(int i=0; i<mismatch_vec.size(); i++){
+            cout<<i<<endl;
     }
 }

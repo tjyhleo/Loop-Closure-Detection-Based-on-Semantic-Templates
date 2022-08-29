@@ -47,7 +47,7 @@ float MI_calculator(const Mat temppp, const Mat srccc, const Mat histtt, const i
 
 
 void hist_builder(const Mat input_mat, const Mat input_mat2, Mat& output_mat, 
-            const Mat hist_mat, const vector<Mat>row_mat_vec, const Mat row_mat[20][20]){
+                 const vector<Mat>row_mat_vec, const Mat row_mat[20][20]){
     // assert(input_mat.size==input_mat2.size);
     uchar P1;
     uchar P2;
@@ -74,19 +74,66 @@ void hist_builder(const Mat input_mat, const Mat input_mat2, Mat& output_mat,
 
 }
 
+bool templateFinder(Mat img, Mat ref_Mat, const int imgW, const int imgH, const int w, const int h, int &x, int &y){
+    bool templateOkay = false;
+    for(int j=int(imgH*0.15); j<int(imgH*0.85) - h; j+=imgH/40){
+        for (int i=int(imgW*0.15); i<int(imgW*0.85) - w; i+=imgW/40){
+            Rect r(i,j, w,h);
+            // rectangle(img, r, Scalar(255, 0, 255), 2, LINE_AA);
+            // imshow("template_rgb", img);
+            // waitKey(0);
+            Mat temp_Mat = ref_Mat(r);
+            
+            temp_Mat.convertTo(temp_Mat, CV_8UC1);
+            set<uchar> sem_set;
+            vector<uchar> sem_vec;
+            for(int ii=0; ii<temp_Mat.rows; ii++){
+                for(int jj=0; jj<temp_Mat.cols; jj++){
+                    sem_set.insert(temp_Mat.at<uchar>(ii,jj));
+                    sem_vec.push_back(temp_Mat.at<uchar>(ii,jj));
+                }
+            }
+            
+            //there must be at least 3 semantic labels in the template
+            if(sem_set.size()<3){
+                // cout<<"("<<i<<" ,"<<j<<")"<<sem_set.size()<<endl;
+                continue;
+            }
+            //each type of the semantic label must occupy no more than 50% of the template 
+            int counter=0;
+            for(set<uchar>::iterator it = sem_set.begin(); it!=sem_set.end(); it++){
+                int num = count(sem_vec.begin(), sem_vec.end(), *it);
+                if (num > w*h*0.1){
+                    counter+=1;
+                }
+            }
+            if (counter<3){
+                    templateOkay=false;
+                    continue;
+                }
+            else{
+                templateOkay=true;
+                x=i;
+                y=j;
+            }
+        }
+        if(templateOkay==true){
+            break;
+        }
+    }
+    return templateOkay;
+}
+
 int main(int argc, char **argv)
 {
     clock_t start, end; //timing
     double t_diff; //timing
-    int tempWl = 200;   //template width
-    int tempWr = 1200;
-    int tempHu = 80;   //template hight
-    int tempHd = 300;
     int imgW=1408; //img width
     int imgH=376;   //img height
     float MI;
     Point pt_max;
     double val_max, val_min;
+    int imgSkip=0;
 
     //get histMat
     start=clock();
@@ -128,7 +175,8 @@ int main(int argc, char **argv)
 
     //get all the picture names in segmentation folder and raw image folder
     // string seg_path=kitti360+"2013_05_28_drive_0007_sync_image_00/segmentation";
-    string seg_path=kitti360+"data_2d_raw/2013_05_28_drive_0010_sync/image_00/segmentation";
+    // string seg_path=kitti360+"data_2d_raw/2013_05_28_drive_0010_sync/image_00/segmentation";
+    string seg_path=kitti360+"data_2d_semantics/train/2013_05_28_drive_0010_sync/image_00/semantic";
     vector<cv::String> fn_seg;
     glob(seg_path, fn_seg, false);
 
@@ -137,7 +185,8 @@ int main(int argc, char **argv)
     vector<cv::String> fn_raw;
     glob(raw_path, fn_raw, false);
 
-    string segrgb_path = kitti360+"data_2d_raw/2013_05_28_drive_0010_sync/image_00/segmentation_rgb";
+    // string segrgb_path = kitti360+"data_2d_raw/2013_05_28_drive_0010_sync/image_00/segmentation_rgb";
+    string segrgb_path = kitti360+"data_2d_semantics/train/2013_05_28_drive_0010_sync/image_00/semantic_rgb";
     vector<cv::String> fn_segrgb;
     glob(segrgb_path, fn_segrgb, false);
 
@@ -146,33 +195,43 @@ int main(int argc, char **argv)
 
     //perform template matching image by image
     // for(int i=0; i<fn_seg.size()-1; i++){
-    for(int i=0; i<3800; i+=5){
+    for(int i=0; i<2680; i+=5){
         cout<<"current image"<<i<<endl;
         //read segmentation image and rgb image, select template and build result matrix
         Mat ref_Mat = imread(fn_seg[i], IMREAD_GRAYSCALE);
-        Mat src_Mat = imread(fn_seg[i], IMREAD_GRAYSCALE);
+        Mat src_Mat = imread(fn_seg[i+1], IMREAD_GRAYSCALE);
         Mat ref_color = imread(fn_raw[i], IMREAD_COLOR);
-        Mat src_color = imread(fn_raw[i], IMREAD_COLOR);
+        Mat src_color = imread(fn_raw[i+1], IMREAD_COLOR);
         Mat ref_segrgb = imread(fn_segrgb[i],IMREAD_COLOR);
-        Mat src_segrgb = imread(fn_segrgb[i],IMREAD_COLOR);
+        Mat src_segrgb = imread(fn_segrgb[i+1],IMREAD_COLOR);
         if (src_Mat.empty() || ref_Mat.empty() || ref_color.empty() || src_color.empty() 
             || ref_segrgb.empty() || src_segrgb.empty()){
             cout << "failed to read image" << endl;
             return EXIT_FAILURE;
         }
 
-
         // int x = 700;
         // int y = 160;
         // int w = 100;
         // int h = 80;
-        int x = 680;
-        int y = 160;
+        // int x = 680;
+        // int y = 160;
+        // int w = 40;
+        // int h = 60;
+        // x= x-w/2;
+        // y= y-h/2;
+        // Rect r(int(imgW*5/8)+30,int(imgH/3)-20, 50,80); //801
         int w = 40;
         int h = 60;
-        x= x-w/2;
-        y= y-h/2;
-        // Rect r(int(imgW*5/8)+30,int(imgH/3)-20, 50,80); //801
+        int x,y;
+        bool templateOkay = templateFinder(ref_segrgb, ref_Mat, imgW, imgH, w, h, x, y);
+        if(templateOkay==false){
+            cout<<"image"<<to_string(i)<<"doesn't have a good template"<<endl;
+            imgSkip+=1;
+            cout<<"skipped img number: "<<imgSkip<<endl;
+            continue;
+        }
+        
         Rect r(x,y, w,h);
         // Rect r(int(imgW/2)+80,int(imgH/2)-80, 10,20); //1901
         // Rect r(int(imgW/2)+100,int(imgH/2)-70, 10,20);
@@ -197,9 +256,9 @@ int main(int argc, char **argv)
 
 
         //build histogram for template image
-        Mat temp_hist = Mat::ones(1,20, CV_32FC1)*(1e-6);
+        Mat temp_hist = Mat::ones(1,45, CV_32FC1)*(1e-6);
         Mat empty_mat;
-        hist_builder(temp, empty_mat, temp_hist, histMat, row_mat_vec, row_mat);
+        hist_builder(temp, empty_mat, temp_hist, row_mat_vec, row_mat);
         int N = temp.cols * temp.rows;
         cout<<"N: "<<N<<endl;
 
@@ -216,17 +275,19 @@ int main(int argc, char **argv)
             start = clock();
             for (int j=0; j<result.cols; j++)
             {
+                // cout<<"rrrr"<<endl;
                 Mat src_part(src, cv::Rect(j,i,temp.cols, temp.rows));
-
+                // cout<<"rrrr"<<endl;
                 // Mat src_hist = Mat::ones(1,20, CV_32FC1)*(1e-6);
-                // hist_builder(src_part, empty_mat, src_hist, histMat, row_mat_vec, row_mat);
+                // hist_builder(src_part, empty_mat, src_hist,row_mat_vec, row_mat);
                 
 
-                Mat temp_src_hist = Mat::ones(20,20, CV_32FC1)*(1e-6);
-                hist_builder(temp, src_part, temp_src_hist, histMat, row_mat_vec, row_mat);
-
-                Mat src_hist = Mat::zeros(1,20, CV_32FC1);
-                for (int i=0; i<20; i++){
+                Mat temp_src_hist = Mat::ones(45,45, CV_32FC1)*(1e-6);
+                // cout<<"rrrr"<<endl;
+                hist_builder(temp, src_part, temp_src_hist,row_mat_vec, row_mat);
+                // cout<<"rrrr"<<endl;
+                Mat src_hist = Mat::zeros(1,45, CV_32FC1);
+                for (int i=0; i<45; i++){
                     src_hist.at<float>(0,i) = sum(temp_src_hist.col(i))[0];
                 }
 

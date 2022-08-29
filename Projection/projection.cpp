@@ -233,8 +233,8 @@ int main(){
     int noProj_frames=0;
     int imgW=1408; //img width
     int imgH=376;   //img height
-    int tempWl = 200;   //template width
-    int tempWr = 1200;
+    int tempWl = 300;   //template width
+    int tempWr = 1100;
     int tempHu = 80;   //template hight
     int tempHd = 300;
     int frameId; //the index of frame
@@ -244,10 +244,11 @@ int main(){
     double val_min=0, val_max=0; //max and min value within a matrix
     Mat intrinsicMat; // intrinsic matrix
     Mat pcMat; //matrix that stores pointcloud information
-    Mat histMat = Mat::ones(300,300,CV_32SC1); //big histogram matrix
+    Mat histMat = Mat::ones(256,256,CV_32SC1); //big histogram matrix
     int histSum=0; //sum of all the values in histMat
     vector<uchar> seg_class; //segmentation classes
     bool flag; //flag indicating if there are valid points projected to a certain frame
+    int ii=0;
 
 
     //read matrices from files
@@ -293,16 +294,21 @@ int main(){
 
 
     //get all the picture names in segmentation folder
-    string seg_path=kitti360+"data_2d_raw/2013_05_28_drive_0010_sync/image_00/segmentation";
+    // string seg_path=kitti360+"data_2d_raw/2013_05_28_drive_0010_sync/image_00/segmentation";
+    string seg_path=kitti360+"data_2d_semantics/train/2013_05_28_drive_0010_sync/image_00/semantic";
     vector<cv::String> fn_seg;
     glob(seg_path, fn_seg, false);
     // size_t fn_count = fn.size();
 
 
     //loop through frame by frame
-    for(int i=0; i<frameSequence.size()-1; i++){
+    // for(int i=0; i<frameSequence.size()-1; i++){
+    for(int i=0; i<2686; i++){
+        if(i==0 || i==602){
+            ii += 1;
+        }
     // for(int i=802; i<805; ++i){
-        frameId = frameSequence[i];
+        frameId = frameSequence[ii];
         cout<<"frame: "<<frameId<<endl;
 
         Mat imgMat = Mat::zeros(tempHd-tempHu+1,tempWr-tempWl+1, CV_64FC4); //stores image to be displayed
@@ -316,6 +322,7 @@ int main(){
         if(flag==false){
             cout<<"no point projected to frame "<< frameId<<endl;
             noProj_frames+=1;
+            ii += 1;
             continue;
         }
         end = clock(); //stop timing
@@ -348,7 +355,6 @@ int main(){
 
         //build correspondense between the template in frame1 and the template in frame2
         Mat frame_uv;
-        Mat frame_xyz = Mat::zeros(5,imgMat.cols * imgMat.rows, CV_64FC1);
         Mat frame1_u;
         Mat frame1_v;
         Mat frame1_x;
@@ -356,96 +362,110 @@ int main(){
         Mat frame1_z;
         Mat frame2_u;
         Mat frame2_v;
+        Mat frame_xyz;
         for(int v=0; v<imgMat.rows; v++){
             for(int u=0; u<imgMat.cols; u++){
-                frame1_u.push_back(u+tempWl);
-                frame1_v.push_back(v+tempHu);
-                frame1_x.push_back(imgMat.at<Vec4d>(v,u)[1]);
-                frame1_y.push_back(imgMat.at<Vec4d>(v,u)[2]);
-                frame1_z.push_back(imgMat.at<Vec4d>(v,u)[3]);
-                
+                //add the point only if there is a 3d point projected onto it (d!=0)
+                if(imgMat.at<Vec4d>(v,u)[0]!=0){
+                    frame1_u.push_back(double(u+tempWl));
+                    frame1_v.push_back(double(v+tempHu));
+                    frame1_x.push_back(imgMat.at<Vec4d>(v,u)[1]);
+                    frame1_y.push_back(imgMat.at<Vec4d>(v,u)[2]);
+                    frame1_z.push_back(imgMat.at<Vec4d>(v,u)[3]);
+                }
             }
         }
-        // cout<<"322 reached"<<endl;
-        // cout<<imgMat.at<Vec4d>(1,1)<<endl;
-        // cout<<imgMat.at<Vec4d>(1,1)[1]<<endl;
-        frame1_x = frame1_x.t();
-        frame1_x.copyTo(frame_xyz.row(0));
-        // cout<<"340 reached"<<endl;
-        frame1_y = frame1_y.t();
-        frame1_y.copyTo(frame_xyz.row(1));
-        frame1_z = frame1_z.t();
-        // cout<<frame1_z.col(1).t()<<endl;
-        frame1_z.copyTo(frame_xyz.row(2));
-        frame1_u = frame1_u.t();
-        frame1_u.copyTo(frame_xyz.row(3));
-        frame1_v = frame1_v.t();
-        frame1_v.copyTo(frame_xyz.row(4));
-        // cout<<"333 reached"<<endl;
-        Mat frame_xyzC;
-        frame_xyz.copyTo(frame_xyzC);
-        Mat frame1_uv;
-        // cout<<"337 reached"<<endl;
-        // cout<<frame_xyz.col(1).t()<<endl;
-        flag = world2image(frame_xyz, frame1_uv, intrinsicMat, frameId);
-        if(flag==false){
-            cout<<"no point projected to frame "<< frameId<<endl;
-            noProj_frames+=1;
-            continue;
-        }
-        // cout<<"339 reached"<<endl;
-        frame_uv.push_back(frame1_uv.row(0));
-        frame_uv.push_back(frame1_uv.row(1));
-        // cout<<"342 reached"<<endl;
+
+        
+        // Mat frame_xyz = Mat::zeros(5,frame1_x.rows, CV_64FC1);
+        // frame1_x = frame1_x.t();
+        // frame1_x.copyTo(frame_xyz.row(0));
+        // // cout<<"340 reached"<<endl;
+        // frame1_y = frame1_y.t();
+        // frame1_y.copyTo(frame_xyz.row(1));
+        // frame1_z = frame1_z.t();
+        // // cout<<frame1_z.col(1).t()<<endl;
+        // frame1_z.copyTo(frame_xyz.row(2));
+        // frame1_u = frame1_u.t();
+        // frame1_u.copyTo(frame_xyz.row(3));
+        // frame1_v = frame1_v.t();
+        // frame1_v.copyTo(frame_xyz.row(4));
+
+
+        // Mat frame_xyzC;
+        // frame_xyz.copyTo(frame_xyzC);
+        // Mat frame1_uv;
+
+        // flag = world2image(frame_xyz, frame1_uv, intrinsicMat, frameId);
+        // if(flag==false){
+        //     cout<<"no point projected to frame "<< frameId<<endl;
+        //     noProj_frames+=1;
+        //     ii += 1;
+        //     continue;
+        // }
+        // frame_uv.push_back(frame1_uv.row(0));
+        // frame_uv.push_back(frame1_uv.row(1));
+        frame_xyz.push_back(frame1_x.t());
+        frame_xyz.push_back(frame1_y.t());
+        frame_xyz.push_back(frame1_z.t());
+        frame_xyz.push_back(frame1_u.t());
+        frame_xyz.push_back(frame1_v.t());
+        frame_uv.push_back(frame1_u.t());
+        frame_uv.push_back(frame1_v.t());
 
         Mat frame2_uv;
-        int frameId2 = frameSequence[i+1];
-        flag = world2image(frame_xyzC, frame2_uv, intrinsicMat, frameId2);
+        int frameId2 = frameSequence[ii+1];
+        flag = world2image(frame_xyz, frame2_uv, intrinsicMat, frameId2);
         if(flag==false){
             cout<<"no point projected to frame "<< frameId<<endl;
             noProj_frames+=1;
+            ii += 1;
             continue;
         }
         if(frame2_uv.cols != frame_uv.cols){
             cout<<"frame "<<frameId<<" is skipped"<<endl;
             skipped_frames+=1;
+            ii += 1;
             continue;
         }
-        // cout<<"347 reached"<<endl;
-        frame2_uv.convertTo(frame2_uv,CV_64FC1);
-        for(int i=0; i<frame2_uv.cols; i++){
-            int u = cvRound(frame2_uv.at<double>(0,i));
-            int v = cvRound(frame2_uv.at<double>(1,i));
-            frame2_u.push_back(u);
-            frame2_v.push_back(v);
-        }
-        // cout<<"frame2_u type "<<frame2_u.type()<<endl;
-        frame_uv.convertTo(frame_uv, frame2_u.type());
-        // cout<<"frame_uv size: "<<frame_uv.size<<endl;
-        // cout<<"frame2_u size: "<<frame2_u.size<<endl;
-        // cout<<"frame2_v size: "<<frame2_v.size<<endl;
-        frame2_u= frame2_u.t();
-        frame_uv.push_back(frame2_u);
-        frame2_v = frame2_v.t();
-        frame_uv.push_back(frame2_v);
 
-        frame_uv.convertTo(frame_uv, CV_16UC1);
+        frame_uv.push_back(frame2_uv.row(0));
+        frame_uv.push_back(frame2_uv.row(1));
+        frame_uv.convertTo(frame_uv, CV_32SC1);
 
-        // cout<<"frame_uv is ready"<<endl;
+
+        // frame2_uv.convertTo(frame2_uv,CV_64FC1);
+        // for(int i=0; i<frame2_uv.cols; i++){
+        //     int u = cvRound(frame2_uv.at<double>(0,i));
+        //     int v = cvRound(frame2_uv.at<double>(1,i));
+        //     frame2_u.push_back(u);
+        //     frame2_v.push_back(v);
+        // }
+        // frame_uv.convertTo(frame_uv, frame2_u.type());
+        // frame2_u= frame2_u.t();
+        // frame_uv.push_back(frame2_u);
+        // frame2_v = frame2_v.t();
+        // frame_uv.push_back(frame2_v);
+
 
         //////////////////////////////////////////////////////
-        Mat frame1 = imread(fn_seg[frameId], IMREAD_GRAYSCALE);
-        Mat frame2 = imread(fn_seg[frameId2], IMREAD_GRAYSCALE);
-        // minMaxLoc(frame1, &val_min, &val_max,NULL,NULL);
-        // cout<<"val_min: "<<val_min<<endl;
-        // cout<<"val_max: "<<val_max<<endl;
+        Mat frame1 = imread(fn_seg[i], IMREAD_GRAYSCALE);
+        Mat frame2 = imread(fn_seg[i+1], IMREAD_GRAYSCALE);
+        cout<<fn_seg[i].substr(120)<<endl;
+
         frame1.convertTo(frame1, CV_8UC1);
         frame2.convertTo(frame2,CV_8UC1);
+        minMaxLoc(frame2, &val_min, &val_max,NULL,NULL);
 
-        
         for(int index=0; index<frame_uv.cols; index++){
-            uchar p1 = frame1.at<uchar>(frame_uv.at<ushort>(1,index), frame_uv.at<ushort>(0,index));
-            uchar p2 = frame2.at<uchar>(frame_uv.at<ushort>(3,index), frame_uv.at<ushort>(2,index));
+            uchar p1 = frame1.at<uchar>(frame_uv.at<int>(1,index), frame_uv.at<int>(0,index));
+            uchar p2 = frame2.at<uchar>(frame_uv.at<int>(3,index), frame_uv.at<int>(2,index));
+            if(p2>val_max || p2<val_min){
+                continue;
+                // cout<<int(p2)<<","<<frame_uv.at<int>(3,index)<<","<<frame_uv.at<int>(2,index)<<endl;
+                // cout<<index<<endl;
+                // exit(0);
+            }
             histMat.at<int>(p1,p2) += 1;
         }
         // cout<<"histMat(7,7)"<<histMat.at<int>(7,7)<<endl;
@@ -456,15 +476,17 @@ int main(){
 
         
         histSum = histSum+ frame_uv.cols;
-        cout<<"histSum: "<<histSum<<endl;
-        
+        cout<<"histSum: "<<histSum+256<<", "<<sum(histMat.diag())[0]<<endl;
 
         valid_frames = valid_frames+1;
+        
         cout<<"valid frames: "<<valid_frames<<endl;
         cout<<"skipped frames: "<<skipped_frames<<endl;
         cout<<"empty frames: "<<noProj_frames<<endl;
-
+        // cout<<histMat<<endl;
         
+
+        ii+=1;
         
         
         

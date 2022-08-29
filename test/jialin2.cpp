@@ -51,63 +51,25 @@ int m[4][4] =
 	{ {1, 2, 3,3},
 	  {2,1,3,3},
 	  {3,2,1,1},
-	  {3,2,1,1}
+	  {5,2,1,1}
 	};
     // cout <<"array m: "<< m <<endl;
 cv::Mat testMat(4,4,CV_32SC1,m);
 
 cout << testMat << endl;
 
-// for (int i=0; i<3; i++){
-// 	Mat testMat = Mat::ones(i+3,i+3, CV_16FC1);
-// 	cout<<testMat<<endl;
-// 	// trying(testMat);
-// }
-// Mat a = trying(testMat);
-Mat a=Mat::ones(1,4,CV_32FC1)*(1e-6);
-// a = a *10;
-// trying(testMat, a);
-
-// a=a-2;
-cout<<a<<endl;
-
-
-// cout<<testMat<<endl;
-
-
-
-
-
-
-
-// Mat a(3,4,CV_64FC1);
-
-// int A = 1000;
-// for()
-
-// Mat a = testMat.rowRange(0,2).clone();
-// // a.row(0) = testMat.row(1) - testMat.row(2);
-// Scalar ss = sum(testMat.col(0));
-// float s = ss[0];
-// cout<<s<<endl;
-// Mat b;
-// a.copyTo(b);
-// b = a.clone();
-// b.row(0)-=2;
-// a.rowRange(0,2) = testMat.rowRange(0,2).clone();
-// testMat.rowRange(0,2).copyTo(a.rowRange(0,2));
-// testMat.row(1).copyTo(a.row(1));
-// Mat a = testMat.rowRange(0,2);
-// Mat b(4,4,a.type());
-// // Mat c(2,4,a.type());
-// Mat c = a;
-// c = a*b;
-// a=a*c;
-// testMat.copyTo(a.rowRange(0,2));
-
-// cout<<a<<endl;
-// cout<<testMat<<endl;
-// cout<<b<<endl;
+vector<vector<int>> bigVec;
+for(int i=0; i<5; i++){
+	for(int j=0; j<5; j++){
+		vector<int> t;
+		t.push_back(i);
+		t.push_back(5);
+		bigVec.push_back(t);
+	}
+}
+for(int i=0; i<bigVec.size(); i++){
+	cout<<bigVec[i][1]<<endl;
+}
 
 
 return 0;
