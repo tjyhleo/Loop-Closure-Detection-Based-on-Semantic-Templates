@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <opencv4/opencv2/core.hpp>
+#include <set>
 
 using namespace std;
 using namespace cv;
@@ -56,21 +57,19 @@ int m[4][4] =
     // cout <<"array m: "<< m <<endl;
 cv::Mat testMat(4,4,CV_32SC1,m);
 
-cout << testMat << endl;
+vector<Mat> asdf;
+Mat ff = testMat.row(1).clone();
 
-vector<vector<int>> bigVec;
-for(int i=0; i<5; i++){
-	for(int j=0; j<5; j++){
-		vector<int> t;
-		t.push_back(i);
-		t.push_back(5);
-		bigVec.push_back(t);
-	}
-}
-for(int i=0; i<bigVec.size(); i++){
-	cout<<bigVec[i][1]<<endl;
+Mat ss = ff;
+asdf.push_back(ss);
+ss=testMat;
+asdf.push_back(ss);
+for(size_t i=0; i<asdf.size(); i++){
+	cout<<asdf[i]<<endl;
 }
 
+cout<<ff<<endl;
+cout<<testMat<<endl;
 
 return 0;
 }

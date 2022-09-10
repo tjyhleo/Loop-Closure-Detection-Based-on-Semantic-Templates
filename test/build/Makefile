@@ -111,6 +111,19 @@ depend:
 .PHONY : depend
 
 #=============================================================================
+# Target rules for targets named test_cc
+
+# Build rule for target.
+test_cc: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 test_cc
+.PHONY : test_cc
+
+# fast build rule for target.
+test_cc/fast:
+	$(MAKE) -f CMakeFiles/test_cc.dir/build.make CMakeFiles/test_cc.dir/build
+.PHONY : test_cc/fast
+
+#=============================================================================
 # Target rules for targets named jialin_test
 
 # Build rule for target.
@@ -190,6 +203,33 @@ jialin2.cpp.s:
 	$(MAKE) -f CMakeFiles/jialin_test2.dir/build.make CMakeFiles/jialin_test2.dir/jialin2.cpp.s
 .PHONY : jialin2.cpp.s
 
+test.o: test.cc.o
+
+.PHONY : test.o
+
+# target to build an object file
+test.cc.o:
+	$(MAKE) -f CMakeFiles/test_cc.dir/build.make CMakeFiles/test_cc.dir/test.cc.o
+.PHONY : test.cc.o
+
+test.i: test.cc.i
+
+.PHONY : test.i
+
+# target to preprocess a source file
+test.cc.i:
+	$(MAKE) -f CMakeFiles/test_cc.dir/build.make CMakeFiles/test_cc.dir/test.cc.i
+.PHONY : test.cc.i
+
+test.s: test.cc.s
+
+.PHONY : test.s
+
+# target to generate assembly for a file
+test.cc.s:
+	$(MAKE) -f CMakeFiles/test_cc.dir/build.make CMakeFiles/test_cc.dir/test.cc.s
+.PHONY : test.cc.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -198,6 +238,7 @@ help:
 	@echo "... depend"
 	@echo "... rebuild_cache"
 	@echo "... edit_cache"
+	@echo "... test_cc"
 	@echo "... jialin_test"
 	@echo "... jialin_test2"
 	@echo "... jialin.o"
@@ -206,6 +247,9 @@ help:
 	@echo "... jialin2.o"
 	@echo "... jialin2.i"
 	@echo "... jialin2.s"
+	@echo "... test.o"
+	@echo "... test.i"
+	@echo "... test.s"
 .PHONY : help
 
 

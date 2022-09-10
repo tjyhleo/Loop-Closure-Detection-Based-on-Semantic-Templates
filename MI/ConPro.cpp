@@ -39,6 +39,9 @@ vector<int> histCheck(Mat ConProMat){
             ignoreLabels.push_back(i);
         }
     }
+    int dynamic[]{24,25,26,27,28,29,30,31,32,33};
+    // vector<int> dynamic_vec(dynamic, dynamic+10);
+    ignoreLabels.insert(ignoreLabels.end(),dynamic,dynamic+10);
     return ignoreLabels;
 }
 
@@ -59,7 +62,7 @@ void get_histMat(Mat &histMat){
 }
 
 bool templateFinder(Mat img, Mat ref_Mat, const int w, const int h, int &x, int &y, 
-                const vector<int> ignoreLabels, const vector<int>goodLabels,const vector<int>badLabels ){
+                const vector<int> ignoreLabels, const vector<int>goodLabels,const vector<int>badLabels, set<uchar> &outputSet ){
     bool templateOkay = false;
     bool lowerRequire=false;
     int imgH = ref_Mat.rows;
@@ -67,13 +70,14 @@ bool templateFinder(Mat img, Mat ref_Mat, const int w, const int h, int &x, int 
     Mat goodTemp;
     Mat okayTemp;
     for(int j=int(imgH*0.15); j<int(imgH*0.85) - h; j+=imgH/40){
-        for (int i=int(imgW*0.15); i<int(imgW*0.85) - w; i+=imgW/40){
+        for (int i=int(imgW*0.15); i<int(imgW*0.85) - w; i+=imgW/80){
             Rect r(i,j, w,h);
             // rectangle(img, r, Scalar(255, 0, 255), 2, LINE_AA);
             // imshow("template_rgb", img);
             // waitKey(0);
+
+            //get the number of each type of semantic labels in template
             Mat temp_Mat = ref_Mat(r);
-            
             temp_Mat.convertTo(temp_Mat, CV_8UC1);
             set<uchar> sem_set;
             vector<uchar> sem_vec;
@@ -88,37 +92,175 @@ bool templateFinder(Mat img, Mat ref_Mat, const int w, const int h, int &x, int 
             if(sem_set.size()<3){
                 continue;
             }
-            //there must be no bad semantic labels in template
-            bool badLabelExist=false;
+            //there must be no ignore semantic labels in template
+            bool ignoreLabelExist=false;
             for(set<uchar>::iterator it = sem_set.begin(); it!=sem_set.end(); it++){
                 if(find(ignoreLabels.begin(), ignoreLabels.end(), *it) != ignoreLabels.end()){
-                    badLabelExist=true;
+                    ignoreLabelExist=true;
                     break;
                 };
             }
-            if(badLabelExist==true){
+            if(ignoreLabelExist==true){
                 continue;
             }
-            //there must be at least 3 semantic labels that occupy more than 20% of the template
+            //there must be at least 3 semantic labels that each occupy more than 20% of the template
             int counter=0;
+            set<uchar> major_sem; //record the semantic labels that occupy more than 20% of template
             for(set<uchar>::iterator it = sem_set.begin(); it!=sem_set.end(); it++){
                 int num = count(sem_vec.begin(), sem_vec.end(), *it);
                 if (num > w*h*0.2){
                     counter+=1;
+                    major_sem.insert(*it);
                 }
             }
             if (counter<3){
                 templateOkay=false;
                 continue;
             }
-            else{
+
+            //check edges
+            set<uchar> left, right, up, down;
+            set<uchar> left_set, right_set, up_set, down_set;
+            vector<uchar> left_vec, right_vec, up_vec, down_vec;
+            
+            for(int i=0; i<temp_Mat.rows; i++){
+                left_set.insert(temp_Mat.at<uchar>(i,0));
+                left_vec.push_back(temp_Mat.at<uchar>(i,0));
+                right_set.insert(temp_Mat.at<uchar>(i,temp_Mat.cols-1));
+                right_vec.push_back(temp_Mat.at<uchar>(i,temp_Mat.cols-1));
+            }
+
+            for(int i=0; i<temp_Mat.cols; i++){
+                up_set.insert(temp_Mat.at<uchar>(0,i));
+                up_vec.push_back(temp_Mat.at<uchar>(0,i));
+                down_set.insert(temp_Mat.at<uchar>(temp_Mat.rows-1, i));
+                down_vec.push_back(temp_Mat.at<uchar>(temp_Mat.rows-1, i));
+            }
+
+            for(set<uchar>::iterator it=left_set.begin(); it!=left_set.end(); it++){
+                if(count(left_vec.begin(),left_vec.end(), *it)>left_vec.size()/left_set.size()*0.5){
+                    left.insert(*it);
+                }
+            }
+
+            for(set<uchar>::iterator it=right_set.begin(); it!=right_set.end(); it++){
+                if(count(right_vec.begin(),right_vec.end(), *it)>right_vec.size()/right_set.size()*0.5){
+                    right.insert(*it);
+                }
+            }
+
+            for(set<uchar>::iterator it=up_set.begin(); it!=up_set.end(); it++){
+                if(count(up_vec.begin(),up_vec.end(), *it)>up_vec.size()/up_set.size()*0.5){
+                    up.insert(*it);
+                }
+            }
+
+            for(set<uchar>::iterator it=down_set.begin(); it!=down_set.end(); it++){
+                if(count(down_vec.begin(),down_vec.end(), *it)>down_vec.size()/down_set.size()*0.5){
+                    down.insert(*it);
+                }
+            }
+
+            if(left == right && up.size() == down.size()){
+                continue;
+            }
+
+            else if(up == down && left.size() == right.size()){
+                continue;
+            }
+
+            cout<<left.size()<<","<<right.size()<<","<<up.size()<<","<<down.size()<<endl;
+            rectangle(img, r, Scalar(0, 0, 255), 2, LINE_AA);
+            for(set<uchar>::iterator it=left.begin(); it!=left.end(); it++){
+                cout<<"left: "<<int(*it)<<": "<<count(left_vec.begin(),left_vec.end(), *it)<<",  ";
+            }
+            cout<<endl;
+            for(set<uchar>::iterator it=right.begin(); it!=right.end(); it++){
+                cout<<"right: "<<int(*it)<<": "<<count(right_vec.begin(),right_vec.end(), *it)<<",  ";
+            }
+            cout<<endl;
+            for(set<uchar>::iterator it=up.begin(); it!=up.end(); it++){
+                cout<<"up: "<<int(*it)<<": "<<count(up_vec.begin(),up_vec.end(), *it)<<",  ";
+            }
+            cout<<endl;
+            for(set<uchar>::iterator it=down.begin(); it!=down.end(); it++){
+                cout<<"down: "<<int(*it)<<": "<<count(down_vec.begin(),down_vec.end(), *it)<<",  ";
+            }
+            cout<<endl;
+            imshow("template_rgb", img);
+            waitKey(0);
+
+            //to this step, the template is considered okay, record it in okayTemp
+            Mat xy = (Mat_<int>(1,2)<<i,j);
+            okayTemp.push_back(xy);
+
+            //check if tempalte has good labels and bad labels
+            bool goodLabelFound=false;
+            bool badLabelFound=false;
+            for(set<uchar>::iterator it = major_sem.begin(); it!=major_sem.end(); it++){
+                if(find(goodLabels.begin(),goodLabels.end(), *it)!=goodLabels.end()){
+                    goodLabelFound=true;
+                }
+                if(find(badLabels.begin(), badLabels.end(), *it)!=badLabels.end()){
+                    badLabelFound=true;
+                }
+            }
+            if(goodLabelFound==true && badLabelFound==false){
                 templateOkay=true;
                 x=i;
                 y=j;
+                break;
+            }
+            else if(goodLabelFound==true || badLabelFound==false){
+                Mat xy2 = (Mat_<int>(1,2)<<i,j);
+                goodTemp.push_back(xy2);
             }
         }
         if(templateOkay==true){
             break;
+        }
+    }
+
+    //if we cannot find a perfect template, settle for a good template or okay template
+    if(templateOkay==false){
+        if(goodTemp.empty()==false){
+            x = goodTemp.at<int>(0,0);
+            y = goodTemp.at<int>(0,1);
+            templateOkay=true;
+        }
+        else if(okayTemp.empty()==false){
+            x = okayTemp.at<int>(0,0);
+            y = okayTemp.at<int>(0,1);
+            templateOkay=true;
+        }
+    }
+
+    if(templateOkay==true){
+        Rect r(x,y, w,h);
+        Mat temp_Mat = ref_Mat(r);
+        temp_Mat.convertTo(temp_Mat, CV_8UC1);
+        set<uchar> sem_set;
+        vector<uchar> sem_vec;
+        for(int ii=0; ii<temp_Mat.rows; ii++){
+            for(int jj=0; jj<temp_Mat.cols; jj++){
+                sem_set.insert(temp_Mat.at<uchar>(ii,jj));
+                sem_vec.push_back(temp_Mat.at<uchar>(ii,jj));
+            }
+        }
+        set<uchar> major_sem;
+        for(set<uchar>::iterator it = sem_set.begin(); it!=sem_set.end(); it++){
+                int num = count(sem_vec.begin(), sem_vec.end(), *it);
+                if (num > w*h*0.2){
+                    outputSet.insert(*it);
+                    major_sem.insert(*it);
+                }
+        }
+        for(set<uchar>::iterator it = major_sem.begin(); it!=major_sem.end(); it++){
+            if(find(goodLabels.begin(),goodLabels.end(), *it)!=goodLabels.end()){
+                    outputSet.clear();
+                    outputSet.insert(*it);
+                    break;
+                }
         }
     }
     return templateOkay;
@@ -182,6 +324,42 @@ vector<int> badLabelFinder(){
     return badLabels;
 }
 
+int resultFilter(Mat inputMat, set<uchar>essential_sem){
+    int result=1;
+    set<uchar> exist_sem;
+    // for(int r=0; r<inputMat.rows; r++){
+    //     for(int c=0; c<inputMat.cols; c++){
+    //         exist_sem.insert(inputMat.at<uchar>(r,c));
+    //     }
+    // }
+    // for(set<uchar>::iterator it=essential_sem.begin(); it!=essential_sem.end(); it++){
+    //     if(find(exist_sem.begin(), exist_sem.end(), *it)==exist_sem.end()){
+    //         result=0;
+    //         break;
+    //     }
+    // }
+    for(set<uchar>::iterator it=essential_sem.begin(); it!=essential_sem.end(); it++){
+        bool foundIt=false;
+        for(int r=0; r<inputMat.rows; r++){
+            for(int c=0; c<inputMat.cols; c++){
+                if(inputMat.at<uchar>(r,c)==*it){
+                    foundIt=true;
+                    break;
+                }
+            }
+            if(foundIt==true){
+                break;
+            }
+        }
+        if(foundIt==false){
+            result=0;
+            break;
+        }
+    }
+    return result;
+}
+
+
 int main(int argc, char **argv)
 {
     clock_t start, end; //timing
@@ -189,7 +367,7 @@ int main(int argc, char **argv)
     float ConPro; //conditional probability
     Point pt_max, pt_min;
     double val_max, val_min;
-    int imgSkip;
+    int imgSkip=0;
     vector<int> mismatch_vec;
 
 
@@ -218,11 +396,13 @@ int main(int argc, char **argv)
     for(int i=0; i<ConProMat.rows; i++){
         ConProMat.row(i) = ConProMat.row(i) / row_sum[i];
     }
-    
+
     vector<int> ignoreLabels = histCheck(ConProMat);
     vector<int> goodLabels = goodLabelFinder();
     vector<int> badLabels = badLabelFinder();
-    
+
+    //convert probability matrix to log of probability matrix
+    log(ConProMat, ConProMat);
 
 
 
@@ -244,9 +424,13 @@ int main(int argc, char **argv)
 
     //perform template matching image by image
     // for(int i=369; i<fn_seg.size()-1; i++){
-    for(int i=125; i<2680; i+=5){
+    for(int i=0; i<2680; i+=5){
+        string kw = "0000001261";
         int str_len = fn_seg[i].length();
         string frameId = fn_seg[i].substr(str_len-14, 10);
+        if(kw!=frameId){
+            continue;
+        }
         cout<<"current image: "<<frameId<<endl;
 
         //read segmentation image and rgb image, select template and build result matrix
@@ -267,10 +451,11 @@ int main(int argc, char **argv)
         int h = 30;
         int x,y;
         start = clock();
-        bool templateOkay = templateFinder(ref_segrgb, ref_Mat, w, h, x, y, ignoreLabels, goodLabels, badLabels);
+        set<uchar> essential_sem; //stores the essential semantic labels in template, the matched template must have these semantic labels
+        bool templateOkay = templateFinder(ref_segrgb, ref_Mat, w, h, x, y, ignoreLabels, goodLabels, badLabels, essential_sem);
         end=clock();
         t_diff=(double)(end-start)/CLOCKS_PER_SEC;
-        // cout<<"time to find template: "<<t_diff<<endl;
+        cout<<"time to find template: "<<t_diff<<endl;
         if(templateOkay==false){
             cout<<"image"<<to_string(i)<<"doesn't have a good template"<<endl;
             imgSkip+=1;
@@ -285,15 +470,16 @@ int main(int argc, char **argv)
         Mat temp(temp_Mat.size(),CV_8UC1);
         temp_Mat.convertTo(temp, CV_8UC1);
         Mat result = Mat::zeros(src.rows - temp.rows +1,src.cols - temp.cols +1, CV_32FC1);
+        Mat result_filter = Mat::zeros(src.rows - temp.rows +1,src.cols - temp.cols +1, CV_32SC1);
 
 
         //show template in rgb image
         // rectangle(ref_color, r, Scalar(255, 0, 255), 2, LINE_AA);
         // imshow("template_color", ref_color);
-        // rectangle(ref_segrgb, r, Scalar(255, 0, 255), 2, LINE_AA);
-        // imshow("template_rgb", ref_segrgb);
-        // waitKey(0);
-        // cout<<"program continues"<<endl;
+        rectangle(ref_segrgb, r, Scalar(0, 0, 255), 2, LINE_AA);
+        imshow("template_rgb", ref_segrgb);
+        waitKey(0);
+        cout<<"program continues"<<endl;
 
 
         // //show the number of each semantic label in template
@@ -313,39 +499,47 @@ int main(int argc, char **argv)
                 Mat src_part(src, cv::Rect(j,i,temp.cols, temp.rows));
                 ConPro = ConPro_calculator(src_part, temp, ConProMat);
                 result.at<float>(i,j) = ConPro;
+                int fil=resultFilter(src_part, essential_sem);
+                result_filter.at<int>(i,j) = fil;
+                
+                //just for timing
                 if (j-counter==0){
                     end=clock();
                     t_diff=(double)(end-start)/CLOCKS_PER_SEC;
                     counter +=interval;
                     start=clock();
-                    // cout<<"expected time left: "<<t_diff/interval * ((result.cols-j) + result.cols* (result.rows-i-1))<<endl;
+                    cout<<"expected time left: "<<t_diff/interval * ((result.cols-j) + result.cols* (result.rows-i-1))<<endl;
                 }
             }
         }
         
 
         //draw a rectangle on source image at the position where mutial information is the highest
-        minMaxLoc(result, &val_min, &val_max, NULL, &pt_max);
+        Mat mask = result_filter>0;
+        Mat filtered_result;
+        result.copyTo(filtered_result,mask);
+        minMaxLoc(filtered_result, &val_min, &val_max, NULL, &pt_max);
         // cout<<val_max<<endl;
         // cout<<val_min<<endl;
-        // cout<<pt_max.x<<" , "<<pt_max.y<<endl;
+        cout<<pt_max.x<<" , "<<pt_max.y<<endl;
         
-        if(abs(x-pt_max.x)>50 || abs(y-pt_max.y)>50){
+        // if(abs(x-pt_max.x)>50 || abs(y-pt_max.y)>50){
+        if(8>7){
             mismatch_vec.push_back(i);
             cout<<"match too far away: "<<frameId<<endl;
             cout<<abs(x-pt_max.x)<<", "<<abs(y-pt_max.y)<<endl;
-            rectangle(ref_segrgb, r, Scalar(255, 0, 255), 2, LINE_AA);
-            rectangle(src_segrgb, Rect(pt_max.x, pt_max.y, temp.cols, temp.rows), Scalar(255, 0, 255), 2, LINE_AA);
+            rectangle(ref_segrgb, r, Scalar(0, 0, 255), 2, LINE_AA);
+            rectangle(src_segrgb, Rect(pt_max.x, pt_max.y, temp.cols, temp.rows), Scalar(0, 0, 255), 2, LINE_AA);
             float threshold = float((val_max-val_min)*0.99+val_min);
 
 
-            cout<<"ManualCheck for ground truth position"<<endl;
-            Mat srcPart = src(r);
-            ManualCheck(temp, srcPart, ConProMat);
+            // cout<<"ManualCheck for ground truth position"<<endl;
+            // Mat srcPart = src(r);
+            // ManualCheck(temp, srcPart, ConProMat);
 
-            cout<<"ManualCheck for best match position"<<endl;
-            srcPart = src(Rect(pt_max.x, pt_max.y, w,h));
-            ManualCheck(temp, srcPart, ConProMat);
+            // cout<<"ManualCheck for best match position"<<endl;
+            // srcPart = src(Rect(pt_max.x, pt_max.y, w,h));
+            // ManualCheck(temp, srcPart, ConProMat);
             // waitKey(0); 
 
 
