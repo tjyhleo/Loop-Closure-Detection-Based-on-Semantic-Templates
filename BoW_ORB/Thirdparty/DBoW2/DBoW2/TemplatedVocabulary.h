@@ -557,6 +557,7 @@ TemplatedVocabulary<TDescriptor,F>::operator=
 template<class TDescriptor, class F>
 void TemplatedVocabulary<TDescriptor,F>::create(
   const std::vector<std::vector<TDescriptor> > &training_features)
+  // const std::vector<TDescriptor> &training_features)
 {
   m_nodes.clear();
   m_words.clear();

@@ -125,7 +125,6 @@ ORB_SLAM2: /usr/local/lib/libopencv_stitching.so.4.5.5
 ORB_SLAM2: /usr/local/lib/libopencv_video.so.4.5.5
 ORB_SLAM2: /usr/local/lib/libopencv_videoio.so.4.5.5
 ORB_SLAM2: ../Thirdparty/DBoW2/lib/libDBoW2.so
-ORB_SLAM2: ../Thirdparty/g2o/lib/libg2o.so
 ORB_SLAM2: /usr/local/lib/libopencv_imgcodecs.so.4.5.5
 ORB_SLAM2: /usr/local/lib/libopencv_dnn.so.4.5.5
 ORB_SLAM2: /usr/local/lib/libopencv_calib3d.so.4.5.5

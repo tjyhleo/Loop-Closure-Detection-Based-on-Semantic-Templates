@@ -1,0 +1,3 @@
+/home/jialin/Documents/VSC_Projects/BoW_ORB/Thirdparty/DBoW2/build/CMakeFiles/rebuild_cache.dir
+/home/jialin/Documents/VSC_Projects/BoW_ORB/Thirdparty/DBoW2/build/CMakeFiles/DBoW2.dir
+/home/jialin/Documents/VSC_Projects/BoW_ORB/Thirdparty/DBoW2/build/CMakeFiles/edit_cache.dir

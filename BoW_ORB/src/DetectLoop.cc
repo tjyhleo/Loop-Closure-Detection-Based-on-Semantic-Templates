@@ -12,7 +12,7 @@
 using namespace cv;
 using namespace std;
 
-ORB_SLAM2::ORBVocabulary* mpVocabulary;
+ORB_SLAM2::ORBVocabulary* mpVocabulary = new ORB_SLAM2::ORBVocabulary();
 // vector<KeyFrame*> KeyFrameDatabase::DetectLoopCandidates(KeyFrame* pKF, float minScore)
 // {
 //     // 取出与当前关键帧相连（>15个共视地图点）的所有关键帧，这些相连关键帧都是局部相连，在闭环检测的时候将被剔除
@@ -216,7 +216,15 @@ std::vector<cv::Mat> toDescriptorVector(const cv::Mat &Descriptors)
  */
 void ExtractORB(const vector<cv::Mat> vmImg, vector<cv::Mat>& vmDescriptors)
 {
-    ORB_SLAM2::ORBextractor* mpORBextractorLeft;
+    // ORB_SLAM2::ORBextractor *mpORBextractorLeft = new ORB_SLAM2::ORBextractor(); 
+    
+    // ORB_SLAM2::ORBextractor asdf();
+    int nFeatures =1000;
+    float fScaleFactor=1.2;
+    int nLevels=8;
+    int fIniThFAST=20;
+    int fMinThFAST=8;
+    ORB_SLAM2::ORBextractor* mpORBextractor = new ORB_SLAM2::ORBextractor(2*nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
     cv::Mat img;
     cv::Mat mDescriptors;
     std::vector<cv::KeyPoint> mvKeys;
@@ -224,12 +232,13 @@ void ExtractORB(const vector<cv::Mat> vmImg, vector<cv::Mat>& vmDescriptors)
         img = vmImg[i];
         // 左图的话就套使用左图指定的特征点提取器，并将提取结果保存到对应的变量中 
         // 这里使用了仿函数来完成，重载了括号运算符 ORBextractor::operator() 
-        (*mpORBextractorLeft)(img,				//待提取特征点的图像
+        (*mpORBextractor)(img,				//待提取特征点的图像
                             cv::Mat(),		//掩摸图像, 实际没有用到
                             mvKeys,			//输出变量，用于保存提取后的特征点
                             mDescriptors);	//输出变量，用于保存特征点的描述子
         vmDescriptors.push_back(mDescriptors);
     }
+    delete mpORBextractor;
     
     
 }
@@ -266,17 +275,31 @@ void ReadVocabulary(ORB_SLAM2::ORBVocabulary *voc){
     cout << "Vocabulary loaded!" << endl << endl;
 }
 
-void ReadImg(vector<Mat> &vmImages, string img_path){
+void ReadImg(vector<cv::Mat> &vmImages, cv::String img_path){
     vector<cv::String> fn_img;
-    glob(img_path, fn_img, false);
+    glob(img_path, fn_img, true);
     for(size_t i=0; i<fn_img.size();i++){
-        vmImages.push_back(imread(fn_img[i], IMREAD_GRAYSCALE));
+        vmImages.push_back(imread(fn_img[i],IMREAD_GRAYSCALE));
+        // cv::imshow("asdf",vmImages[i]);
+        // waitKey(0);
     }
+    
+    
+}
+
+void BuildVoc(ORB_SLAM2::ORBVocabulary *voc, vector<cv::Mat>vmDescriptors){
+    vector<vector<cv::Mat>> vvmDescriptors;
+    for(size_t i=0; i<vmDescriptors.size(); i++){
+        vector<cv::Mat> vCurrentDesc = toDescriptorVector(vmDescriptors[i]);
+        vvmDescriptors.push_back(vCurrentDesc);
+    }
+    voc ->create(vvmDescriptors);
+    
 }
 
 int main(){
 
-    
+    // cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
     // Vocabulary used for relocalization.
     ///用于重定位的ORB特征字典
     // ORBVocabulary* mpORBvocabulary;
@@ -285,26 +308,48 @@ int main(){
     // mpVocabulary = new ORB_SLAM2::ORBVocabulary();
 
     // ORB_SLAM2::ORBVocabulary mpVocabulary;
-    ReadVocabulary(mpVocabulary);
+    // ReadVocabulary(mpVocabulary);
 
     //读取图片
-    vector<Mat> vmImages;
-    string img_path = "data";
+    cout<<"reading images..."<<endl;
+    vector<cv::Mat> vmImages;
+    // cv::String img_path = "/home/jialin/Documents/VSC_Projects/BoW_ORB/data/*.png";
+    cv::String img_path = "/media/jialin/045E58135E57FC3C/UBUNTU/Long_term_VL_dataset/Oxford/*.jpg";
     ReadImg(vmImages, img_path);
+    cout<<vmImages.size()<<endl;
 
     //提取ORB descripter
+    cout<<"extracting ORB descriptors..."<<endl;
     vector<cv::Mat> vmDescriptors;
     ExtractORB(vmImages, vmDescriptors);
+    // cout<<vmDescriptors[0].rowRange(0,5).colRange(0,5)<<endl;
     
+    cout<<"building vocabulary..."<<endl;
+
+    // string f_path = "/home/jialin/Documents/VSC_Projects/BoW_ORB/Vocabulary/vocabulary.yml.gz";
+    // mpVocabulary->load(f_path);
+    BuildVoc(mpVocabulary, vmDescriptors);
+
+    cout<<"saving vocabulary..."<<endl;
+    mpVocabulary -> save("vocabulary.yml.gz");
+
+    cout<<*mpVocabulary<<endl;
+
     //
-    DBoW2::BowVector CBowVec = ComputeBoW(vmDescriptors[0]);
-    for(size_t i=1; i<vmDescriptors.size(); i++){
-        DBoW2::BowVector mBowVec = ComputeBoW(vmDescriptors[i]);
-        float score = mpVocabulary->score(CBowVec, mBowVec);
-        cout<<i<<", "<<score<<endl;
-    }
+    // cout<<"computing BoW..."<<endl;
+    
+    // DBoW2::BowVector CBowVec = ComputeBoW(vmDescriptors[0]);
+    // cout<<CBowVec.size()<<endl;
+    // cout<<CBowVec[0]<<endl;
+    // cout<<CBowVec[1]<<endl;
+    // cout<<"comparing score ..."<<endl;
+    // for(size_t i=0; i<vmDescriptors.size(); i++){
+    //     DBoW2::BowVector mBowVec = ComputeBoW(vmDescriptors[i]);
+    //     float score = mpVocabulary->score(CBowVec, mBowVec);
+    //     cout<<i<<", "<<score<<endl;
+    // }
 
-
+    delete mpVocabulary;
     return 0;
 }
 
