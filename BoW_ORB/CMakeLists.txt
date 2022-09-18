@@ -73,10 +73,19 @@ ${EIGEN3_INCLUDE_DIR}
 # # src/Initializer.cc
 # # src/Viewer.cc
 # )
-aux_source_directory(./src SRC)
-add_executable(${PROJECT_NAME} ${SRC})
+# aux_source_directory(./src SRC)
+add_executable(${PROJECT_NAME} ./src/DetectLoop.cc ./src/ORBextractor.cc)
+add_executable(BuildVoc ./src/BuildVoc.cc ./src/ORBextractor.cc)
 
 target_link_libraries(${PROJECT_NAME}
+${OpenCV_LIBS}
+${EIGEN3_LIBS}
+# ${Pangolin_LIBRARIES}
+${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
+# ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
+)
+
+target_link_libraries(BuildVoc
 ${OpenCV_LIBS}
 ${EIGEN3_LIBS}
 # ${Pangolin_LIBRARIES}

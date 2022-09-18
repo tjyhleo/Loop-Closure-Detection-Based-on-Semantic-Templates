@@ -1,0 +1,26 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/jialin/Documents/VSC_Projects/STM/projection.cpp
+iostream
+-
+fstream
+-
+opencv4/opencv2/core.hpp
+-
+opencv4/opencv2/opencv.hpp
+-
+pcl/io/pcd_io.h
+-
+pcl/point_types.h
+-
+pcl/io/ply_io.h
+-
+ctime
+-
+

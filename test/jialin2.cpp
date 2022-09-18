@@ -14,23 +14,41 @@ using namespace cv;
 // cout<<mat2<<enl;
 // fs.release();
 
-void trying(Mat testMatttt, Mat a){
-	// testMatttt.row(1) = testMatttt.row(2);
-	// a = testMatttt.row(0).clone();
-	a.row(0)= testMatttt.row(0);
-	// testMatttt.row(0).copyTo(a);
-	// testMatttt.row(0).copyTo(a.row(0));
-	// a = a-2;
-	// Mat b=a;
-	// b=b-2;
-	cout<<"a: "<<a<<endl;
-	cout<<"testMat: "<<testMatttt<<endl;
+int MaxComb(Mat inMat){
+    assert(inMat.type()==4 && "input mat type must be int");
+    int score=0;
+    if(inMat.rows==1 || inMat.cols==1){
+        double val_max, val_min;
+        minMaxLoc(inMat, &val_min, &val_max, NULL, NULL);
+        score=int(val_max);
+        return score;
+    }
 
-	// return a;
-	// outputMat = a;
-	// return outputMat;
-
-
+    int RUCorner = inMat.at<int>(0,inMat.cols-1);
+    int LDCorner = inMat.at<int>(inMat.rows-1, 0);
+    if(RUCorner>score){
+        score=RUCorner;
+    } 
+    if(LDCorner>score){
+        score=LDCorner;
+    }
+    for(int i=0; i<inMat.cols-1; i++){
+        Mat innerMat = inMat.rowRange(1,inMat.rows).colRange(i+1,inMat.cols);
+        int maxFromMat = MaxComb(innerMat);
+        int col_score = inMat.at<int>(0,i) + maxFromMat;
+        if(col_score>score){
+            score=col_score;
+        }
+    }
+    for(int i=0; i<inMat.rows-1; i++){
+        Mat innerMat = inMat.rowRange(i+1,inMat.rows).colRange(1,inMat.cols);
+        int maxFromMat = MaxComb(innerMat);
+        int row_score = inMat.at<int>(i,0) + maxFromMat;
+        if(row_score>score){
+            score=row_score;
+        }
+    }
+    return score;
 }
 
 
@@ -49,27 +67,20 @@ int main(){
 // fs2.release();
 
 int m[4][4] = 
-	{ {1, 2, 3,3},
+	{ {1,2,3,3},
 	  {2,1,3,3},
-	  {3,2,1,1},
-	  {5,2,1,1}
+	  {3,3,1,1},
+	  {5,2,1,2}
 	};
     // cout <<"array m: "<< m <<endl;
 cv::Mat testMat(4,4,CV_32SC1,m);
+// cout<<testMat.type()<<endl;
+assert(testMat.type()==4);
 
-vector<Mat> asdf;
-Mat ff = testMat.row(1).clone();
+int score = MaxComb(testMat);
+cout<<score<<endl;
 
-Mat ss = ff;
-asdf.push_back(ss);
-ss=testMat;
-asdf.push_back(ss);
-for(size_t i=0; i<asdf.size(); i++){
-	cout<<asdf[i]<<endl;
-}
 
-cout<<ff<<endl;
-cout<<testMat<<endl;
 
 return 0;
 }

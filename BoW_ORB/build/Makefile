@@ -123,6 +123,46 @@ ORB_SLAM2/fast:
 	$(MAKE) -f CMakeFiles/ORB_SLAM2.dir/build.make CMakeFiles/ORB_SLAM2.dir/build
 .PHONY : ORB_SLAM2/fast
 
+#=============================================================================
+# Target rules for targets named BuildVoc
+
+# Build rule for target.
+BuildVoc: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 BuildVoc
+.PHONY : BuildVoc
+
+# fast build rule for target.
+BuildVoc/fast:
+	$(MAKE) -f CMakeFiles/BuildVoc.dir/build.make CMakeFiles/BuildVoc.dir/build
+.PHONY : BuildVoc/fast
+
+src/BuildVoc.o: src/BuildVoc.cc.o
+
+.PHONY : src/BuildVoc.o
+
+# target to build an object file
+src/BuildVoc.cc.o:
+	$(MAKE) -f CMakeFiles/BuildVoc.dir/build.make CMakeFiles/BuildVoc.dir/src/BuildVoc.cc.o
+.PHONY : src/BuildVoc.cc.o
+
+src/BuildVoc.i: src/BuildVoc.cc.i
+
+.PHONY : src/BuildVoc.i
+
+# target to preprocess a source file
+src/BuildVoc.cc.i:
+	$(MAKE) -f CMakeFiles/BuildVoc.dir/build.make CMakeFiles/BuildVoc.dir/src/BuildVoc.cc.i
+.PHONY : src/BuildVoc.cc.i
+
+src/BuildVoc.s: src/BuildVoc.cc.s
+
+.PHONY : src/BuildVoc.s
+
+# target to generate assembly for a file
+src/BuildVoc.cc.s:
+	$(MAKE) -f CMakeFiles/BuildVoc.dir/build.make CMakeFiles/BuildVoc.dir/src/BuildVoc.cc.s
+.PHONY : src/BuildVoc.cc.s
+
 src/DetectLoop.o: src/DetectLoop.cc.o
 
 .PHONY : src/DetectLoop.o
@@ -157,6 +197,7 @@ src/ORBextractor.o: src/ORBextractor.cc.o
 # target to build an object file
 src/ORBextractor.cc.o:
 	$(MAKE) -f CMakeFiles/ORB_SLAM2.dir/build.make CMakeFiles/ORB_SLAM2.dir/src/ORBextractor.cc.o
+	$(MAKE) -f CMakeFiles/BuildVoc.dir/build.make CMakeFiles/BuildVoc.dir/src/ORBextractor.cc.o
 .PHONY : src/ORBextractor.cc.o
 
 src/ORBextractor.i: src/ORBextractor.cc.i
@@ -166,6 +207,7 @@ src/ORBextractor.i: src/ORBextractor.cc.i
 # target to preprocess a source file
 src/ORBextractor.cc.i:
 	$(MAKE) -f CMakeFiles/ORB_SLAM2.dir/build.make CMakeFiles/ORB_SLAM2.dir/src/ORBextractor.cc.i
+	$(MAKE) -f CMakeFiles/BuildVoc.dir/build.make CMakeFiles/BuildVoc.dir/src/ORBextractor.cc.i
 .PHONY : src/ORBextractor.cc.i
 
 src/ORBextractor.s: src/ORBextractor.cc.s
@@ -175,6 +217,7 @@ src/ORBextractor.s: src/ORBextractor.cc.s
 # target to generate assembly for a file
 src/ORBextractor.cc.s:
 	$(MAKE) -f CMakeFiles/ORB_SLAM2.dir/build.make CMakeFiles/ORB_SLAM2.dir/src/ORBextractor.cc.s
+	$(MAKE) -f CMakeFiles/BuildVoc.dir/build.make CMakeFiles/BuildVoc.dir/src/ORBextractor.cc.s
 .PHONY : src/ORBextractor.cc.s
 
 # Help Target
@@ -184,8 +227,12 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... rebuild_cache"
-	@echo "... ORB_SLAM2"
 	@echo "... edit_cache"
+	@echo "... ORB_SLAM2"
+	@echo "... BuildVoc"
+	@echo "... src/BuildVoc.o"
+	@echo "... src/BuildVoc.i"
+	@echo "... src/BuildVoc.s"
 	@echo "... src/DetectLoop.o"
 	@echo "... src/DetectLoop.i"
 	@echo "... src/DetectLoop.s"

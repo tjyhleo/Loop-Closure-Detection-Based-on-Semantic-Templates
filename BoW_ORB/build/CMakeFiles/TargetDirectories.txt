@@ -1,3 +1,4 @@
 /home/jialin/Documents/VSC_Projects/BoW_ORB/build/CMakeFiles/rebuild_cache.dir
-/home/jialin/Documents/VSC_Projects/BoW_ORB/build/CMakeFiles/ORB_SLAM2.dir
 /home/jialin/Documents/VSC_Projects/BoW_ORB/build/CMakeFiles/edit_cache.dir
+/home/jialin/Documents/VSC_Projects/BoW_ORB/build/CMakeFiles/ORB_SLAM2.dir
+/home/jialin/Documents/VSC_Projects/BoW_ORB/build/CMakeFiles/BuildVoc.dir

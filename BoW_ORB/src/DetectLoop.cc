@@ -13,185 +13,6 @@ using namespace cv;
 using namespace std;
 
 ORB_SLAM2::ORBVocabulary* mpVocabulary = new ORB_SLAM2::ORBVocabulary();
-// vector<KeyFrame*> KeyFrameDatabase::DetectLoopCandidates(KeyFrame* pKF, float minScore)
-// {
-//     // 取出与当前关键帧相连（>15个共视地图点）的所有关键帧，这些相连关键帧都是局部相连，在闭环检测的时候将被剔除
-//     // 相连关键帧定义见 KeyFrame::UpdateConnections()
-//     set<KeyFrame*> spConnectedKeyFrames = pKF->GetConnectedKeyFrames();
-
-//     // 用于保存可能与当前关键帧形成闭环的候选帧（只要有相同的word，且不属于局部相连（共视）帧）
-//     list<KeyFrame*> lKFsSharingWords;
-
-//     // Search all keyframes that share a word with current keyframes
-//     // Discard keyframes connected to the query keyframe
-//     // Step 1：找出和当前帧具有公共单词的所有关键帧，不包括与当前帧连接（也就是共视）的关键帧
-//     {
-//         unique_lock<mutex> lock(mMutex);
-
-//         // words是检测图像是否匹配的枢纽，遍历该pKF的每一个word
-//         // mBowVec 内部实际存储的是std::map<WordId, WordValue>
-//         // WordId 和 WordValue 表示Word在叶子中的id 和权重
-//         for(DBoW2::BowVector::const_iterator vit=pKF->mBowVec.begin(), vend=pKF->mBowVec.end(); vit != vend; vit++)
-//         {
-//             // 提取所有包含该word的KeyFrame
-//             list<KeyFrame*> &lKFs =   mvInvertedFile[vit->first];
-//             // 然后对这些关键帧展开遍历
-//             for(list<KeyFrame*>::iterator lit=lKFs.begin(), lend= lKFs.end(); lit!=lend; lit++)
-//             {
-//                 KeyFrame* pKFi=*lit;
-                
-//                 if(pKFi->mnLoopQuery!=pKF->mnId)    
-//                 {
-//                     // 还没有标记为pKF的闭环候选帧
-//                     pKFi->mnLoopWords=0;
-//                     // 和当前关键帧共视的话不作为闭环候选帧
-//                     if(!spConnectedKeyFrames.count(pKFi))
-//                     {
-//                         // 没有共视就标记作为闭环候选关键帧，放到lKFsSharingWords里
-//                         pKFi->mnLoopQuery=pKF->mnId;
-//                         lKFsSharingWords.push_back(pKFi);
-//                     }
-//                 }
-//                 pKFi->mnLoopWords++;// 记录pKFi与pKF具有相同word的个数
-//             }
-//         }
-//     }
-
-//     // 如果没有关键帧和这个关键帧具有相同的单词,那么就返回空
-//     if(lKFsSharingWords.empty())
-//         return vector<KeyFrame*>();
-
-//     list<pair<float,KeyFrame*> > lScoreAndMatch;
-
-//     // Only compare against those keyframes that share enough words
-//     // Step 2：统计上述所有闭环候选帧中与当前帧具有共同单词最多的单词数，用来决定相对阈值 
-//     int maxCommonWords=0;
-//     for(list<KeyFrame*>::iterator lit=lKFsSharingWords.begin(), lend= lKFsSharingWords.end(); lit!=lend; lit++)
-//     {
-//         if((*lit)->mnLoopWords>maxCommonWords)
-//             maxCommonWords=(*lit)->mnLoopWords;
-//     }
-
-//     // 确定最小公共单词数为最大公共单词数目的0.8倍
-//     int minCommonWords = maxCommonWords*0.8f;
-
-//     int nscores=0;
-
-//     // Compute similarity score. Retain the matches whose score is higher than minScore
-//     // Step 3：遍历上述所有闭环候选帧，挑选出共有单词数大于minCommonWords且单词匹配度大于minScore存入lScoreAndMatch
-//     for(list<KeyFrame*>::iterator lit=lKFsSharingWords.begin(), lend= lKFsSharingWords.end(); lit!=lend; lit++)
-//     {
-//         KeyFrame* pKFi = *lit;
-
-//         // pKF只和具有共同单词较多（大于minCommonWords）的关键帧进行比较
-//         if(pKFi->mnLoopWords>minCommonWords)
-//         {
-//             nscores++;// 这个变量后面没有用到
-
-//             // 用mBowVec来计算两者的相似度得分
-//             float si = mpVoc->score(pKF->mBowVec,pKFi->mBowVec);
-
-//             pKFi->mLoopScore = si;
-//             if(si>=minScore)
-//                 lScoreAndMatch.push_back(make_pair(si,pKFi));
-//         }
-//     }
-
-//     // 如果没有超过指定相似度阈值的，那么也就直接跳过去
-//     if(lScoreAndMatch.empty())
-//         return vector<KeyFrame*>();
-
-
-//     list<pair<float,KeyFrame*> > lAccScoreAndMatch;
-//     float bestAccScore = minScore;
-
-//     // Lets now accumulate score by covisibility
-//     // 单单计算当前帧和某一关键帧的相似性是不够的，这里将与关键帧相连（权值最高，共视程度最高）的前十个关键帧归为一组，计算累计得分
-//     // Step 4：计算上述候选帧对应的共视关键帧组的总得分，得到最高组得分bestAccScore，并以此决定阈值minScoreToRetain
-//     for(list<pair<float,KeyFrame*> >::iterator it=lScoreAndMatch.begin(), itend=lScoreAndMatch.end(); it!=itend; it++)
-//     {
-//         KeyFrame* pKFi = it->second;
-//         vector<KeyFrame*> vpNeighs = pKFi->GetBestCovisibilityKeyFrames(10);
-
-//         float bestScore = it->first; // 该组最高分数
-//         float accScore = it->first;  // 该组累计得分
-//         KeyFrame* pBestKF = pKFi;    // 该组最高分数对应的关键帧
-//         // 遍历共视关键帧，累计得分 
-//         for(vector<KeyFrame*>::iterator vit=vpNeighs.begin(), vend=vpNeighs.end(); vit!=vend; vit++)
-//         {
-//             KeyFrame* pKF2 = *vit;
-//             // 只有pKF2也在闭环候选帧中，且公共单词数超过最小要求，才能贡献分数
-//             if(pKF2->mnLoopQuery==pKF->mnId && pKF2->mnLoopWords>minCommonWords)
-//             {
-//                 accScore+=pKF2->mLoopScore;
-//                 // 统计得到组里分数最高的关键帧
-//                 if(pKF2->mLoopScore>bestScore)
-//                 {
-//                     pBestKF=pKF2;
-//                     bestScore = pKF2->mLoopScore;
-//                 }
-//             }
-//         }
-
-//         lAccScoreAndMatch.push_back(make_pair(accScore,pBestKF));
-//         // 记录所有组中组得分最高的组，用于确定相对阈值
-//         if(accScore>bestAccScore)
-//             bestAccScore=accScore;
-//     }
-
-//     // Return all those keyframes with a score higher than 0.75*bestScore
-//     // 所有组中最高得分的0.75倍，作为最低阈值
-//     float minScoreToRetain = 0.75f*bestAccScore;
-
-//     set<KeyFrame*> spAlreadyAddedKF;
-//     vector<KeyFrame*> vpLoopCandidates;
-//     vpLoopCandidates.reserve(lAccScoreAndMatch.size());
-
-//     // Step 5：只取组得分大于阈值的组，得到组中分数最高的关键帧作为闭环候选关键帧
-//     for(list<pair<float,KeyFrame*> >::iterator it=lAccScoreAndMatch.begin(), itend=lAccScoreAndMatch.end(); it!=itend; it++)
-//     {
-//         if(it->first>minScoreToRetain)
-//         {
-//             KeyFrame* pKFi = it->second;
-//             // spAlreadyAddedKF 是为了防止重复添加
-//             if(!spAlreadyAddedKF.count(pKFi))
-//             {
-//                 vpLoopCandidates.push_back(pKFi);
-//                 spAlreadyAddedKF.insert(pKFi);
-//             }
-//         }
-//     }
-
-//     return vpLoopCandidates;
-// }
-
-
-// bool DetectLoop(){
-    
-//     // Compute reference BoW similarity score
-//     // This is the lowest score to a connected keyframe in the covisibility graph
-//     // We will impose loop candidates to have a higher similarity than this
-//     const vector<Mat> vpConnectedKeyFrames;
-//     const Mat mpCurrentKF;
-//     const DBoW2::BowVector &CurrentBowVec = mpCurrentKF->mBowVec;
-//     float minScore = 1;
-//     for(size_t i=0; i<vpConnectedKeyFrames.size(); i++)
-//     {
-//         KeyFrame* pKF = vpConnectedKeyFrames[i];
-//         if(pKF->isBad())
-//             continue;
-//         const DBoW2::BowVector &BowVec = pKF->mBowVec;
-
-//         float score = mpORBVocabulary->score(CurrentBowVec, BowVec);
-
-//         if(score<minScore)
-//             minScore = score;
-//     }
-
-//     // Query the database imposing the minimum score
-//     vector<KeyFrame*> vpCandidateKFs = mpKeyFrameDB->DetectLoopCandidates(mpCurrentKF, minScore);
-// }
-
 
 std::vector<cv::Mat> toDescriptorVector(const cv::Mat &Descriptors)
 {
@@ -256,7 +77,8 @@ DBoW2::BowVector ComputeBoW(cv::Mat mDescriptors)
                             4);				//4表示从叶节点向前数的层数
     return mBowVec;
 }
-/////asdfasdf
+
+
 void ReadVocabulary(ORB_SLAM2::ORBVocabulary *voc){
     //Load ORB Vocabulary
     cout << endl << "Loading ORB Vocabulary. This could take a while..." << endl;
@@ -297,57 +119,74 @@ void BuildVoc(ORB_SLAM2::ORBVocabulary *voc, vector<cv::Mat>vmDescriptors){
     
 }
 
+
+bool DetectLoop(vector<cv::Mat> refDes, vector<cv::Mat> queryDes){
+    cv::Mat currentDes = refDes[refDes.size()-1];
+    DBoW2::BowVector cBowVec = ComputeBoW(currentDes);
+    float minScore=1.;
+    bool detected = false;
+    for(size_t i=0; i<refDes.size()-1; i+=5){
+        DBoW2::BowVector BowVec = ComputeBoW(refDes[i]);
+        float s = mpVocabulary->score(cBowVec, BowVec);
+        cout<<i<<": "<<s<<endl;
+        if(s<minScore){
+            minScore = s;
+        }
+    }
+
+    cout<<"minScore: "<<minScore<<endl;
+
+    for(size_t i=80; i<queryDes.size(); i++){
+        DBoW2::BowVector BowVec = ComputeBoW(queryDes[i]);
+        float s = mpVocabulary->score(cBowVec, BowVec);
+        cout<<"s: "<<s<<endl;
+        if(s>=minScore){
+            detected=true;
+            // break;
+        }
+    }
+
+    return detected;
+
+}
+
 int main(){
-
-    // cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
-    // Vocabulary used for relocalization.
-    ///用于重定位的ORB特征字典
-    // ORBVocabulary* mpORBvocabulary;
-
-    //建立一个新的ORB字典
-    // mpVocabulary = new ORB_SLAM2::ORBVocabulary();
-
-    // ORB_SLAM2::ORBVocabulary mpVocabulary;
-    // ReadVocabulary(mpVocabulary);
 
     //读取图片
     cout<<"reading images..."<<endl;
-    vector<cv::Mat> vmImages;
-    // cv::String img_path = "/home/jialin/Documents/VSC_Projects/BoW_ORB/data/*.png";
-    cv::String img_path = "/media/jialin/045E58135E57FC3C/UBUNTU/Long_term_VL_dataset/Oxford/*.jpg";
-    ReadImg(vmImages, img_path);
-    cout<<vmImages.size()<<endl;
+    vector<cv::Mat> vmRefImages;
+    cv::String refImg_path = "/media/jialin/045E58135E57FC3C/UBUNTU/Evaluation_data/overcast/scene2/*.png";
+    ReadImg(vmRefImages, refImg_path);
+    vector<cv::Mat> vmQryImages;
+    cv::String qryImg_path = "/media/jialin/045E58135E57FC3C/UBUNTU/Evaluation_data/night/scene2/*.png";
+    ReadImg(vmQryImages, qryImg_path);
 
     //提取ORB descripter
     cout<<"extracting ORB descriptors..."<<endl;
-    vector<cv::Mat> vmDescriptors;
-    ExtractORB(vmImages, vmDescriptors);
-    // cout<<vmDescriptors[0].rowRange(0,5).colRange(0,5)<<endl;
+    vector<cv::Mat> vmRefDescriptors;
+    ExtractORB(vmRefImages, vmRefDescriptors);
+    vector<cv::Mat> vmQryDescriptors;
+    ExtractORB(vmQryImages, vmQryDescriptors);
     
-    cout<<"building vocabulary..."<<endl;
-
-    // string f_path = "/home/jialin/Documents/VSC_Projects/BoW_ORB/Vocabulary/vocabulary.yml.gz";
+    //加载字典
+    cout<<"loading vocabulary..."<<endl;
+    // string f_path = "/home/jialin/Documents/VSC_Projects/BoW_ORB/Vocabulary/vocab_Oxford.yml.gz";
     // mpVocabulary->load(f_path);
-    BuildVoc(mpVocabulary, vmDescriptors);
-
-    cout<<"saving vocabulary..."<<endl;
-    mpVocabulary -> save("vocabulary.yml.gz");
-
+    string f_path = "/home/jialin/Documents/VSC_Projects/BoW_ORB/Vocabulary/vocab_Oxford.txt";
+    mpVocabulary -> loadFromTextFile(f_path);
     cout<<*mpVocabulary<<endl;
 
-    //
-    // cout<<"computing BoW..."<<endl;
+    //检测回环
+    cout<<"detecting loop closure candidate frames..."<<endl;
+    bool loop_detected = DetectLoop(vmRefDescriptors, vmQryDescriptors);
+    if(loop_detected){
+        cout<<"loop detected"<<endl;
+    }
+    else{
+        cout<<"loop closure not detected"<<endl;
+    }
+
     
-    // DBoW2::BowVector CBowVec = ComputeBoW(vmDescriptors[0]);
-    // cout<<CBowVec.size()<<endl;
-    // cout<<CBowVec[0]<<endl;
-    // cout<<CBowVec[1]<<endl;
-    // cout<<"comparing score ..."<<endl;
-    // for(size_t i=0; i<vmDescriptors.size(); i++){
-    //     DBoW2::BowVector mBowVec = ComputeBoW(vmDescriptors[i]);
-    //     float score = mpVocabulary->score(CBowVec, mBowVec);
-    //     cout<<i<<", "<<score<<endl;
-    // }
 
     delete mpVocabulary;
     return 0;

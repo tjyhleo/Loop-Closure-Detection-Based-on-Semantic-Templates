@@ -1,17 +1,17 @@
 [
 {
   "directory": "/home/jialin/Documents/VSC_Projects/test/build",
-  "command": "/usr/bin/g++    -O3 -DNDEBUG   -o CMakeFiles/test_cc.dir/test.cc.o -c /home/jialin/Documents/VSC_Projects/test/test.cc",
+  "command": "/usr/bin/g++    -g   -o CMakeFiles/test_cc.dir/test.cc.o -c /home/jialin/Documents/VSC_Projects/test/test.cc",
   "file": "/home/jialin/Documents/VSC_Projects/test/test.cc"
 },
 {
   "directory": "/home/jialin/Documents/VSC_Projects/test/build",
-  "command": "/usr/bin/g++   -isystem /usr/local/include/opencv4  -O3 -DNDEBUG   -std=gnu++11 -o CMakeFiles/jialin_test.dir/jialin.cpp.o -c /home/jialin/Documents/VSC_Projects/test/jialin.cpp",
+  "command": "/usr/bin/g++   -isystem /usr/local/include/opencv4  -g   -std=gnu++11 -o CMakeFiles/jialin_test.dir/jialin.cpp.o -c /home/jialin/Documents/VSC_Projects/test/jialin.cpp",
   "file": "/home/jialin/Documents/VSC_Projects/test/jialin.cpp"
 },
 {
   "directory": "/home/jialin/Documents/VSC_Projects/test/build",
-  "command": "/usr/bin/g++   -isystem /usr/local/include/opencv4  -O3 -DNDEBUG   -std=gnu++11 -o CMakeFiles/jialin_test2.dir/jialin2.cpp.o -c /home/jialin/Documents/VSC_Projects/test/jialin2.cpp",
+  "command": "/usr/bin/g++   -isystem /usr/local/include/opencv4  -g   -std=gnu++11 -o CMakeFiles/jialin_test2.dir/jialin2.cpp.o -c /home/jialin/Documents/VSC_Projects/test/jialin2.cpp",
   "file": "/home/jialin/Documents/VSC_Projects/test/jialin2.cpp"
 }
 ]

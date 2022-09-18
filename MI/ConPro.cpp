@@ -70,11 +70,15 @@ bool templateFinder(Mat img, Mat ref_Mat, const int w, const int h, int &x, int 
     Mat goodTemp;
     Mat okayTemp;
     for(int j=int(imgH*0.15); j<int(imgH*0.85) - h; j+=imgH/40){
-        for (int i=int(imgW*0.15); i<int(imgW*0.85) - w; i+=imgW/80){
+        for (int i=int(imgW*0.15); i<int(imgW*0.85) - w; i+=imgW/150){
             Rect r(i,j, w,h);
-            // rectangle(img, r, Scalar(255, 0, 255), 2, LINE_AA);
-            // imshow("template_rgb", img);
-            // waitKey(0);
+            // if(8>7){
+            //     Mat sth = img.clone();
+            //     rectangle(sth, r, Scalar(255, 0, 255), 2, LINE_AA);
+            //     imshow("template_rgb", sth);
+            //     waitKey(0);
+            // }
+            
 
             //get the number of each type of semantic labels in template
             Mat temp_Mat = ref_Mat(r);
@@ -108,7 +112,7 @@ bool templateFinder(Mat img, Mat ref_Mat, const int w, const int h, int &x, int 
             set<uchar> major_sem; //record the semantic labels that occupy more than 20% of template
             for(set<uchar>::iterator it = sem_set.begin(); it!=sem_set.end(); it++){
                 int num = count(sem_vec.begin(), sem_vec.end(), *it);
-                if (num > w*h*0.2){
+                if (num > w*h*0.15){
                     counter+=1;
                     major_sem.insert(*it);
                 }
@@ -122,7 +126,7 @@ bool templateFinder(Mat img, Mat ref_Mat, const int w, const int h, int &x, int 
             set<uchar> left, right, up, down;
             set<uchar> left_set, right_set, up_set, down_set;
             vector<uchar> left_vec, right_vec, up_vec, down_vec;
-            
+           
             for(int i=0; i<temp_Mat.rows; i++){
                 left_set.insert(temp_Mat.at<uchar>(i,0));
                 left_vec.push_back(temp_Mat.at<uchar>(i,0));
@@ -161,16 +165,34 @@ bool templateFinder(Mat img, Mat ref_Mat, const int w, const int h, int &x, int 
                 }
             }
 
-            if(left == right && up.size() == down.size()){
-                continue;
+            if(up.size()==1 && down.size()==1){
+                bool bad_pattern = false;
+                for(set<uchar>::iterator it=left.begin(); it!=left.end(); it++){
+                    if(find(right.begin(), right.end(), *it)!= right.end()){
+                        bad_pattern=true;
+                        break;
+                    }
+                }
+                if(bad_pattern==true){
+                    continue;
+                }
             }
 
-            else if(up == down && left.size() == right.size()){
-                continue;
+            if(left.size()==1 && right.size()==1){
+                bool bad_pattern = false;
+                for(set<uchar>::iterator it=up.begin(); it!=up.end(); it++){
+                    if(find(down.begin(), down.end(), *it)!= down.end()){
+                        bad_pattern=true;
+                        break;
+                    }
+                }
+                if(bad_pattern==true){
+                    continue;
+                }
             }
 
             cout<<left.size()<<","<<right.size()<<","<<up.size()<<","<<down.size()<<endl;
-            rectangle(img, r, Scalar(0, 0, 255), 2, LINE_AA);
+            
             for(set<uchar>::iterator it=left.begin(); it!=left.end(); it++){
                 cout<<"left: "<<int(*it)<<": "<<count(left_vec.begin(),left_vec.end(), *it)<<",  ";
             }
@@ -187,8 +209,11 @@ bool templateFinder(Mat img, Mat ref_Mat, const int w, const int h, int &x, int 
                 cout<<"down: "<<int(*it)<<": "<<count(down_vec.begin(),down_vec.end(), *it)<<",  ";
             }
             cout<<endl;
+
+            rectangle(img, r, Scalar(255, 255, 255), 2, LINE_AA);
             imshow("template_rgb", img);
             waitKey(0);
+            
 
             //to this step, the template is considered okay, record it in okayTemp
             Mat xy = (Mat_<int>(1,2)<<i,j);
@@ -234,7 +259,7 @@ bool templateFinder(Mat img, Mat ref_Mat, const int w, const int h, int &x, int 
             templateOkay=true;
         }
     }
-
+    // cout<<"xy: "<<x<<" "<<y<<endl;
     if(templateOkay==true){
         Rect r(x,y, w,h);
         Mat temp_Mat = ref_Mat(r);
@@ -250,11 +275,13 @@ bool templateFinder(Mat img, Mat ref_Mat, const int w, const int h, int &x, int 
         set<uchar> major_sem;
         for(set<uchar>::iterator it = sem_set.begin(); it!=sem_set.end(); it++){
                 int num = count(sem_vec.begin(), sem_vec.end(), *it);
-                if (num > w*h*0.2){
+                if (num > w*h*0.15){
                     outputSet.insert(*it);
                     major_sem.insert(*it);
+                    cout<<int(*it)<<" ";
                 }
         }
+        cout<<endl;
         for(set<uchar>::iterator it = major_sem.begin(); it!=major_sem.end(); it++){
             if(find(goodLabels.begin(),goodLabels.end(), *it)!=goodLabels.end()){
                     outputSet.clear();
@@ -321,6 +348,7 @@ vector<int> badLabelFinder(){
     int vegetation = 21;
     vector<int> badLabels;
     badLabels.push_back(vegetation);
+    badLabels.push_back(22);
     return badLabels;
 }
 
@@ -344,6 +372,7 @@ int resultFilter(Mat inputMat, set<uchar>essential_sem){
             for(int c=0; c<inputMat.cols; c++){
                 if(inputMat.at<uchar>(r,c)==*it){
                     foundIt=true;
+                    // cout<<"found it: "<<int(*it)<<endl;
                     break;
                 }
             }
@@ -425,7 +454,7 @@ int main(int argc, char **argv)
     //perform template matching image by image
     // for(int i=369; i<fn_seg.size()-1; i++){
     for(int i=0; i<2680; i+=5){
-        string kw = "0000001261";
+        string kw = "0000002686";
         int str_len = fn_seg[i].length();
         string frameId = fn_seg[i].substr(str_len-14, 10);
         if(kw!=frameId){
@@ -435,11 +464,11 @@ int main(int argc, char **argv)
 
         //read segmentation image and rgb image, select template and build result matrix
         Mat ref_Mat = imread(fn_seg[i], IMREAD_GRAYSCALE);
-        Mat src_Mat = imread(fn_seg[i+1], IMREAD_GRAYSCALE);
+        Mat src_Mat = imread(fn_seg[i+3], IMREAD_GRAYSCALE);
         Mat ref_color = imread(fn_raw[i], IMREAD_COLOR);
-        Mat src_color = imread(fn_raw[i+1], IMREAD_COLOR);
+        Mat src_color = imread(fn_raw[i+3], IMREAD_COLOR);
         Mat ref_segrgb = imread(fn_segrgb[i],IMREAD_COLOR);
-        Mat src_segrgb = imread(fn_segrgb[i+1],IMREAD_COLOR);
+        Mat src_segrgb = imread(fn_segrgb[i+3],IMREAD_COLOR);
         if (src_Mat.empty() || ref_Mat.empty() || ref_color.empty() || src_color.empty() 
             || ref_segrgb.empty() || src_segrgb.empty())
         {
@@ -500,7 +529,10 @@ int main(int argc, char **argv)
                 ConPro = ConPro_calculator(src_part, temp, ConProMat);
                 result.at<float>(i,j) = ConPro;
                 int fil=resultFilter(src_part, essential_sem);
+                // cout<<fil<<endl;
                 result_filter.at<int>(i,j) = fil;
+                // cout<<src_part.rowRange(0,5).colRange(0,5)<<endl;
+                // exit(0);
                 
                 //just for timing
                 if (j-counter==0){
@@ -508,7 +540,7 @@ int main(int argc, char **argv)
                     t_diff=(double)(end-start)/CLOCKS_PER_SEC;
                     counter +=interval;
                     start=clock();
-                    cout<<"expected time left: "<<t_diff/interval * ((result.cols-j) + result.cols* (result.rows-i-1))<<endl;
+                    // cout<<"expected time left: "<<t_diff/interval * ((result.cols-j) + result.cols* (result.rows-i-1))<<endl;
                 }
             }
         }
@@ -516,9 +548,14 @@ int main(int argc, char **argv)
 
         //draw a rectangle on source image at the position where mutial information is the highest
         Mat mask = result_filter>0;
-        Mat filtered_result;
-        result.copyTo(filtered_result,mask);
-        minMaxLoc(filtered_result, &val_min, &val_max, NULL, &pt_max);
+        // cout<<mask.rowRange(100,105).colRange(565,570)<<endl;
+        
+        // Mat filtered_result;
+        // result.copyTo(filtered_result,mask);
+        // cout<<filtered_result.rowRange(100,105).colRange(565,570)<<endl;
+        // cout<<filtered_result.rowRange(0,5).colRange(0,5)<<endl;
+        minMaxLoc(result, &val_min, &val_max, NULL, &pt_max,mask);
+        cout<<result.rowRange(pt_max.y,pt_max.y+10).colRange(pt_max.x,pt_max.x+10)<<endl;
         // cout<<val_max<<endl;
         // cout<<val_min<<endl;
         cout<<pt_max.x<<" , "<<pt_max.y<<endl;

@@ -1,0 +1,4 @@
+/home/jialin/Documents/VSC_Projects/STM/build/CMakeFiles/edit_cache.dir
+/home/jialin/Documents/VSC_Projects/STM/build/CMakeFiles/MI.dir
+/home/jialin/Documents/VSC_Projects/STM/build/CMakeFiles/rebuild_cache.dir
+/home/jialin/Documents/VSC_Projects/STM/build/CMakeFiles/ConPro.dir

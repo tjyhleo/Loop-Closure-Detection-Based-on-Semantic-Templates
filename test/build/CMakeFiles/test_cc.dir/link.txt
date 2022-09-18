@@ -1,1 +1,1 @@
-/usr/bin/g++  -O3 -DNDEBUG  -rdynamic CMakeFiles/test_cc.dir/test.cc.o  -o test_cc 
+/usr/bin/g++  -g  -rdynamic CMakeFiles/test_cc.dir/test.cc.o  -o test_cc 
