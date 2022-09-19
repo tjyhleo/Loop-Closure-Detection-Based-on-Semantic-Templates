@@ -2,6 +2,7 @@
 #include <fstream>
 #include <opencv4/opencv2/core.hpp>
 #include <set>
+#include <numeric>
 
 using namespace std;
 using namespace cv;
@@ -51,7 +52,19 @@ int MaxComb(Mat inMat){
     return score;
 }
 
+template <typename T>
+vector<size_t> sort_indexes_e(vector<T> &v)
+{
+    vector<size_t> idx(v.size());
+    iota(idx.begin(), idx.end(), 0);
+    sort(idx.begin(), idx.end(),
+        [&v](size_t i1, size_t i2) {return v[i1] < v[i2]; });
+    return idx;
+}
 
+void sortVec(vector<int>& inVec){
+    sort(inVec.begin(), inVec.end());
+}
 int main(){
 // Mat mat2;
 // FileStorage fs2;
@@ -78,8 +91,12 @@ cv::Mat testMat(4,4,CV_32SC1,m);
 assert(testMat.type()==4);
 
 int score = MaxComb(testMat);
-cout<<score<<endl;
+// cout<<score<<endl;
 
+testMat.convertTo(testMat, CV_32FC1);
+cv::Mat out;
+log(testMat, out);
+cout<<out<<endl;
 
 
 return 0;

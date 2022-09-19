@@ -5,6 +5,7 @@
 #include <opencv4/opencv2/highgui.hpp>
 #include <set>
 #include <ctime>
+#include <numeric>
 
 using namespace std;
 using namespace cv;
@@ -39,9 +40,13 @@ vector<int> histCheck(Mat ConProMat){
             ignoreLabels.push_back(i);
         }
     }
-    int dynamic[]{24,25,26,27,28,29,30,31,32,33};
-    // vector<int> dynamic_vec(dynamic, dynamic+10);
-    ignoreLabels.insert(ignoreLabels.end(),dynamic,dynamic+10);
+    // int dynamic[]{24,25,26,27,28,29,30,31,32,33};
+    // ignoreLabels.insert(ignoreLabels.end(),dynamic,dynamic+10);
+    // int terrain =22;
+    int dynamic[]{11,12,13,14,15,16,17,18};
+    ignoreLabels.insert(ignoreLabels.end(),dynamic,dynamic+8);
+    int terrain =9;
+    ignoreLabels.push_back(terrain);
     return ignoreLabels;
 }
 
@@ -49,7 +54,7 @@ vector<int> histCheck(Mat ConProMat){
 void get_histMat(Mat &histMat){
     FileStorage fs_read;
     double val_min, val_max;
-    fs_read.open("histMat.xml", FileStorage::READ);
+    fs_read.open("histMat_unS.xml", FileStorage::READ);
     if(!fs_read.isOpened()){
         cout<<"histMat.xml not opened"<<endl;
         exit(1);
@@ -61,22 +66,163 @@ void get_histMat(Mat &histMat){
     cout<<"histMat min, max: "<<val_min<<", "<<val_max<<endl;
 }
 
-bool templateFinder(vector<vector<int>>& coarseTemp,vector<vector<int>>& okayTemp, 
+
+bool checkTempPattern(Mat temp_Mat){
+    set<uchar> left, right, up, down;
+    set<uchar> left_set, right_set, up_set, down_set;
+    vector<uchar> left_vec, right_vec, up_vec, down_vec;
+    bool bad_pattern = false;
+    
+    for(int i=0; i<temp_Mat.rows; i++){
+        left_set.insert(temp_Mat.at<uchar>(i,0));
+        left_vec.push_back(temp_Mat.at<uchar>(i,0));
+        right_set.insert(temp_Mat.at<uchar>(i,temp_Mat.cols-1));
+        right_vec.push_back(temp_Mat.at<uchar>(i,temp_Mat.cols-1));
+    }
+
+    for(int i=0; i<temp_Mat.cols; i++){
+        up_set.insert(temp_Mat.at<uchar>(0,i));
+        up_vec.push_back(temp_Mat.at<uchar>(0,i));
+        down_set.insert(temp_Mat.at<uchar>(temp_Mat.rows-1, i));
+        down_vec.push_back(temp_Mat.at<uchar>(temp_Mat.rows-1, i));
+    }
+
+    for(set<uchar>::iterator it=left_set.begin(); it!=left_set.end(); it++){
+        if(count(left_vec.begin(),left_vec.end(), *it)>left_vec.size()/left_set.size()*0.3){
+            left.insert(*it);
+        }
+    }
+
+    for(set<uchar>::iterator it=right_set.begin(); it!=right_set.end(); it++){
+        if(count(right_vec.begin(),right_vec.end(), *it)>right_vec.size()/right_set.size()*0.3){
+            right.insert(*it);
+        }
+    }
+
+    for(set<uchar>::iterator it=up_set.begin(); it!=up_set.end(); it++){
+        if(count(up_vec.begin(),up_vec.end(), *it)>up_vec.size()/up_set.size()*0.3){
+            up.insert(*it);
+        }
+    }
+
+    for(set<uchar>::iterator it=down_set.begin(); it!=down_set.end(); it++){
+        if(count(down_vec.begin(),down_vec.end(), *it)>down_vec.size()/down_set.size()*0.3){
+            down.insert(*it);
+        }
+    }
+
+    if(up.size()==1 && down.size()==1){
+        int counter=0;
+        for(set<uchar>::iterator it=left.begin(); it!=left.end(); it++){
+            if(find(right.begin(), right.end(), *it)!= right.end()){
+                // bad_pattern=true;
+                // break;
+                counter+=1;
+            }
+        }
+        if(counter>1){
+            bad_pattern=true;
+        }
+    }
+
+    if(bad_pattern==true){
+        return bad_pattern;
+    }
+
+    if(left.size()==1 && right.size()==1){
+        int counter=0;
+        for(set<uchar>::iterator it=up.begin(); it!=up.end(); it++){
+            if(find(down.begin(), down.end(), *it)!= down.end()){
+                counter+=1;
+                // bad_pattern=true;
+                // break;
+            }
+        }
+        if(counter>1){
+            bad_pattern=true;
+        }
+    }
+
+    if(bad_pattern==true){
+        return bad_pattern;
+    }
+
+    cout<<left.size()<<","<<right.size()<<","<<up.size()<<","<<down.size()<<endl;
+    
+    for(set<uchar>::iterator it=left.begin(); it!=left.end(); it++){
+        cout<<"left: "<<int(*it)<<": "<<count(left_vec.begin(),left_vec.end(), *it)<<",  ";
+    }
+    cout<<endl;
+    for(set<uchar>::iterator it=right.begin(); it!=right.end(); it++){
+        cout<<"right: "<<int(*it)<<": "<<count(right_vec.begin(),right_vec.end(), *it)<<",  ";
+    }
+    cout<<endl;
+    for(set<uchar>::iterator it=up.begin(); it!=up.end(); it++){
+        cout<<"up: "<<int(*it)<<": "<<count(up_vec.begin(),up_vec.end(), *it)<<",  ";
+    }
+    cout<<endl;
+    for(set<uchar>::iterator it=down.begin(); it!=down.end(); it++){
+        cout<<"down: "<<int(*it)<<": "<<count(down_vec.begin(),down_vec.end(), *it)<<",  ";
+    }
+    cout<<endl;
+
+    return bad_pattern;
+}
+
+
+bool nms(vector<int> currentP, vector<vector<int>> Temp, int w, int h){
+    //get the past point that's closest to the current point
+    bool overlap=false;
+    float min_diff;
+    int i ,j;
+    if(Temp.empty()){
+        return overlap;
+    }
+    for(size_t t=0; t<Temp.size(); t++){
+        vector<int>pastP{Temp[t][0], Temp[t][1]};
+        float diff = norm(currentP, pastP);
+        if(t==0 || diff<min_diff){
+            min_diff=diff;
+            i=Temp[t][0];
+            j=Temp[t][1];
+        }
+    }
+    //test if the past template may overlap with the current template
+    if(abs(currentP[0]-i)<w && abs(currentP[1]-j)<h){
+        overlap=true;
+    }
+
+    return overlap;
+}
+
+
+bool checkRepeatPattern(set<uchar> major_sem, vector<vector<int>> fineTemp){
+    bool repeatPattern = false;
+    set<int>current_sem;
+    for(set<uchar>::iterator it=major_sem.begin(); it!=major_sem.end(); it++ ){
+        current_sem.insert(int(*it));
+    }
+    
+    for(size_t t=0; t<fineTemp.size(); t++){
+        set<int>past_sem(fineTemp[t].begin()+2, fineTemp[t].end());
+        if(current_sem==past_sem){
+            repeatPattern=true;
+            break;
+        }
+    }
+    return repeatPattern;
+}
+
+bool templateFinder(vector<vector<int>>& coarseTemp,vector<vector<int>>& fineTemp, 
                     Mat img, Mat ref_Mat, const int w, const int h, const vector<int> ignoreLabels){
     bool templateOkay = false;
     bool lowerRequire=false;
     int imgH = ref_Mat.rows;
     int imgW = ref_Mat.cols;
-    // Mat goodTemp;
-    int x=-w;
-    int y=-h;
-    // Mat okayTemp;
-    // vector<Mat>okayTemp;
-    for(int j=0; j<imgH - h; j+=imgH/40){
-        for (int i=0; i<imgW - w; i+=imgW/150){
-            // if(i-x<=w && j-y<=h){
-            //     continue;
-            // }
+    // int coarseXLast=-w, coarseYLast=-h, okayXLast=-w, okayYLast=-h;
+    
+    for(int j=0; j<imgH - h; j+=3){
+        for (int i=0; i<imgW - w; i+=3){
             Rect r(i,j, w,h);
             // if(8>7){
             //     Mat sth = img.clone();
@@ -84,7 +230,6 @@ bool templateFinder(vector<vector<int>>& coarseTemp,vector<vector<int>>& okayTem
             //     imshow("template_rgb", sth);
             //     waitKey(0);
             // }
-            
 
             //get the number of each type of semantic labels in template
             Mat temp_Mat = ref_Mat(r);
@@ -129,137 +274,84 @@ bool templateFinder(vector<vector<int>>& coarseTemp,vector<vector<int>>& okayTem
             }
 
             else if(counter==2){
-                vector<int> xy {i,j};
+                //确保每个label占比30%以上
+                int counter=0;
+                for(set<uchar>::iterator it = major_sem.begin(); it!=major_sem.end(); it++){
+                    int num = count(sem_vec.begin(), sem_vec.end(), *it);
+                    if (num > w*h*0.4){
+                        counter+=1;
+                    }
+                }
+                if(counter==2){
+                    vector<int> xy {i,j};
+                    bool overlap = nms(xy, coarseTemp, w, h);
+                    if(overlap==true){
+                        continue;
+                    }
+                    for(set<uchar>::iterator it=major_sem.begin(); it!=major_sem.end(); it++){
+                        xy.push_back(int(*it));
+                    }
+                    coarseTemp.push_back(xy);
+                    rectangle(img, r, Scalar(255, 255, 255), 1, LINE_AA);
+                    // imshow("template_rgb", img);
+                    // waitKey(0);
+                }
+            }
+
+            else if(counter>2){
+                vector<int>xy{i,j};
+                bool overlap = nms(xy, fineTemp, w, h);
+                if(overlap==true){
+                    continue;
+                }
+                // bool badPattern = checkTempPattern(temp_Mat);
+                // if(badPattern==true){
+                //     continue;
+                // }
+                bool repeatPattern = checkRepeatPattern(major_sem, fineTemp);
+                if(repeatPattern==true){
+                    continue;
+                }
                 for(set<uchar>::iterator it=major_sem.begin(); it!=major_sem.end(); it++){
-                // cout<<int(*it)<<endl;
                     xy.push_back(int(*it));
                 }
-                
-                okayTemp.push_back(xy);
-                templateOkay=true;
+                fineTemp.push_back(xy);
+                rectangle(img, r, Scalar(0, 0, 255), 1, LINE_AA);
+                // imshow("template_rgb", img);
+                // waitKey(0);
             }
-
-            //check edges
-            set<uchar> left, right, up, down;
-            set<uchar> left_set, right_set, up_set, down_set;
-            vector<uchar> left_vec, right_vec, up_vec, down_vec;
-           
-            for(int i=0; i<temp_Mat.rows; i++){
-                left_set.insert(temp_Mat.at<uchar>(i,0));
-                left_vec.push_back(temp_Mat.at<uchar>(i,0));
-                right_set.insert(temp_Mat.at<uchar>(i,temp_Mat.cols-1));
-                right_vec.push_back(temp_Mat.at<uchar>(i,temp_Mat.cols-1));
-            }
-
-            for(int i=0; i<temp_Mat.cols; i++){
-                up_set.insert(temp_Mat.at<uchar>(0,i));
-                up_vec.push_back(temp_Mat.at<uchar>(0,i));
-                down_set.insert(temp_Mat.at<uchar>(temp_Mat.rows-1, i));
-                down_vec.push_back(temp_Mat.at<uchar>(temp_Mat.rows-1, i));
-            }
-
-            for(set<uchar>::iterator it=left_set.begin(); it!=left_set.end(); it++){
-                if(count(left_vec.begin(),left_vec.end(), *it)>left_vec.size()/left_set.size()*0.5){
-                    left.insert(*it);
-                }
-            }
-
-            for(set<uchar>::iterator it=right_set.begin(); it!=right_set.end(); it++){
-                if(count(right_vec.begin(),right_vec.end(), *it)>right_vec.size()/right_set.size()*0.5){
-                    right.insert(*it);
-                }
-            }
-
-            for(set<uchar>::iterator it=up_set.begin(); it!=up_set.end(); it++){
-                if(count(up_vec.begin(),up_vec.end(), *it)>up_vec.size()/up_set.size()*0.5){
-                    up.insert(*it);
-                }
-            }
-
-            for(set<uchar>::iterator it=down_set.begin(); it!=down_set.end(); it++){
-                if(count(down_vec.begin(),down_vec.end(), *it)>down_vec.size()/down_set.size()*0.5){
-                    down.insert(*it);
-                }
-            }
-
-            if(up.size()==1 && down.size()==1){
-                bool bad_pattern = false;
-                for(set<uchar>::iterator it=left.begin(); it!=left.end(); it++){
-                    if(find(right.begin(), right.end(), *it)!= right.end()){
-                        bad_pattern=true;
-                        break;
-                    }
-                }
-                if(bad_pattern==true){
-                    continue;
-                }
-            }
-
-            if(left.size()==1 && right.size()==1){
-                bool bad_pattern = false;
-                for(set<uchar>::iterator it=up.begin(); it!=up.end(); it++){
-                    if(find(down.begin(), down.end(), *it)!= down.end()){
-                        bad_pattern=true;
-                        break;
-                    }
-                }
-                if(bad_pattern==true){
-                    continue;
-                }
-            }
-
-            cout<<left.size()<<","<<right.size()<<","<<up.size()<<","<<down.size()<<endl;
-            
-            for(set<uchar>::iterator it=left.begin(); it!=left.end(); it++){
-                cout<<"left: "<<int(*it)<<": "<<count(left_vec.begin(),left_vec.end(), *it)<<",  ";
-            }
-            cout<<endl;
-            for(set<uchar>::iterator it=right.begin(); it!=right.end(); it++){
-                cout<<"right: "<<int(*it)<<": "<<count(right_vec.begin(),right_vec.end(), *it)<<",  ";
-            }
-            cout<<endl;
-            for(set<uchar>::iterator it=up.begin(); it!=up.end(); it++){
-                cout<<"up: "<<int(*it)<<": "<<count(up_vec.begin(),up_vec.end(), *it)<<",  ";
-            }
-            cout<<endl;
-            for(set<uchar>::iterator it=down.begin(); it!=down.end(); it++){
-                cout<<"down: "<<int(*it)<<": "<<count(down_vec.begin(),down_vec.end(), *it)<<",  ";
-            }
-            cout<<endl;
-
-            rectangle(img, r, Scalar(255, 255, 255), 2, LINE_AA);
-            imshow("template_rgb", img);
-            waitKey(0);
-            
-
-            //to this step, the template is considered okay, record it in okayTemp
-            vector<int> xy {i,j};
-            for(set<uchar>::iterator it=sem_set.begin(); it!=sem_set.end(); it++){
-                // cout<<int(*it)<<endl;
-                xy.push_back(int(*it));
-            }
-            
-            okayTemp.push_back(xy);
-            templateOkay=true;
         }
     }
 
-
+    if(!coarseTemp.empty() || !fineTemp.empty()){
+        templateOkay=true;
+    }
     return templateOkay;
 }
 
-void showSemNum(Mat temp){
-    vector<uchar> template_labels_vec;
-    set<uchar> template_labels_set;
+set<int> findMajorLabel(Mat temp, float threshold){
+    vector<uchar> sem_vec;
+    set<uchar> sem_set;
     for(int i=0; i<temp.rows; i++){
         for(int j=0; j<temp.cols; j++){
-            template_labels_vec.push_back(temp.at<uchar>(i,j));
-            template_labels_set.insert(temp.at<uchar>(i,j));
+            sem_vec.push_back(temp.at<uchar>(i,j));
+            sem_set.insert(temp.at<uchar>(i,j));
         }
     }
-    for(set<uchar>::iterator it = template_labels_set.begin(); it!=template_labels_set.end(); it++){
-        cout<<int(*it)<<" : "<<count(template_labels_vec.begin(), template_labels_vec.end(), *it)<<endl;
+    int counter=0;
+    set<int> major_sem; //record the semantic labels that occupy more than 20% of template
+    for(set<uchar>::iterator it = sem_set.begin(); it!=sem_set.end(); it++){
+        int num = count(sem_vec.begin(), sem_vec.end(), *it);
+        if (num > temp.cols*temp.rows*threshold){
+            counter+=1;
+            major_sem.insert(int(*it));
+        }
     }
+    // for(set<uchar>::iterator it = template_labels_set.begin(); it!=template_labels_set.end(); it++){
+    //     cout<<int(*it)<<" : "<<count(template_labels_vec.begin(), template_labels_vec.end(), *it)<<endl;
+    // }
+    return major_sem;
+
 }
 
 
@@ -343,6 +435,89 @@ int resultFilter(Mat inputMat, set<int>essential_sem){
     return result;
 }
 
+template <typename T>
+vector<size_t> sort_indexes_e(vector<T> &v)
+{
+    vector<size_t> idx(v.size());
+    iota(idx.begin(), idx.end(), 0);
+    sort(idx.begin(), idx.end(),
+        [&v](size_t i1, size_t i2) {return v[i1] < v[i2]; });
+    return idx;
+}
+
+void caonima(vector<int>& xVec){
+
+}
+void sortMatchedPoint(vector<int>& xVec, vector<int>& yVec, vector<int>& xRefVec, vector<int> &yRefVec,
+                        const vector<vector<int>> fineMatechedTemp)
+{
+    xVec.clear();
+    yVec.clear();
+    xRefVec.clear();
+    yRefVec.clear();
+    if(!fineMatechedTemp.empty()){
+        for(size_t t=0; t<fineMatechedTemp.size(); t++){
+            xVec.push_back(fineMatechedTemp[t][0]);
+            yVec.push_back(fineMatechedTemp[t][1]);
+            xRefVec.push_back(fineMatechedTemp[t][2]);
+            yRefVec.push_back(fineMatechedTemp[t][3]);
+        }
+        // vector<size_t> xSortIdx = sort_indexes_e(xVec);
+        // vector<size_t> ySortIdx = sort_indexes_e(yVec);
+        // vector<size_t> xRefSortIdx = sort_indexes_e(xRefVec);
+        // vector<size_t> yRefSortIdx = sort_indexes_e(yRefVec);
+        // if(xSortIdx!=xRefSortIdx || ySortIdx!=yRefSortIdx){
+        //     cout<<"sort idx not identical"<<endl;
+        //     for(int i=0; i<xVec.size(); i++){
+        //             cout<<xVec[i]<<"  ";
+        //     }
+        //     cout<<endl;
+        //     for(int i=0; i<xVec.size(); i++){
+        //         cout<<yVec[i]<<"  ";
+        //     }
+        //     cout<<endl;
+        //     for(int i=0; i<xVec.size(); i++){
+        //         cout<<xRefVec[i]<<"  ";
+        //     }
+        //     cout<<endl;
+        //     for(int i=0; i<xVec.size(); i++){
+        //         cout<<yRefVec[i]<<"  ";
+        //     }
+        //     cout<<endl;
+        //     // exit(0);
+        // }
+        sort(xVec.begin(), xVec.end());
+        sort(yVec.begin(), yVec.end());
+        sort(xRefVec.begin(), xRefVec.end());
+        sort(yRefVec.begin(), yRefVec.end());
+    }
+}
+
+bool checkFineMatch(vector<int> currentMatch, vector<vector<int>>pastMatch){
+    bool fine =false;
+    if(pastMatch.empty()){
+        return fine;
+    }
+    if(pastMatch.size()<2){
+        return fine;
+    }
+    size_t st = pastMatch.size();
+    vector<int>currentP{currentMatch[0], currentMatch[1]};
+    vector<int>currentPRef{currentMatch[2], currentMatch[3]};
+    vector<int>lastP{pastMatch[st-1][0],pastMatch[st-1][1]};
+    vector<int>lastPRef{pastMatch[st-1][2],pastMatch[st-1][3]};
+    vector<int>last2P{pastMatch[st-2][0],pastMatch[st-2][1]};
+    vector<int>last2PRef{pastMatch[st-2][2],pastMatch[st-2][3]};
+    float refD = norm(currentPRef, lastPRef);
+    float cD = norm(currentP, lastP);
+    float refD2 = norm(currentPRef, last2PRef);
+    float cD2 = norm(currentP, last2P);
+
+    if(abs(cD-refD)<refD*0.1 && abs(cD2-refD2)<refD2*0.1){
+        fine=true;
+    }
+    return fine;
+}
 
 int main(int argc, char **argv)
 {
@@ -382,62 +557,64 @@ int main(int argc, char **argv)
     }
 
     vector<int> ignoreLabels = histCheck(ConProMat);
-    vector<int> goodLabels = goodLabelFinder();
-    vector<int> badLabels = badLabelFinder();
+    // vector<int> goodLabels = goodLabelFinder();
+    // vector<int> badLabels = badLabelFinder();
 
     //convert probability matrix to log of probability matrix
     log(ConProMat, ConProMat);
 
-
-
     //get all the picture names in segmentation folder and raw image folder
-    string seg_path=kitti360+"data_2d_semantics/train/2013_05_28_drive_0010_sync/image_00/semantic";
+    // string seg_path=kitti360+"data_2d_semantics/train/2013_05_28_drive_0010_sync/image_00/semantic";
+    string seg_path = "/media/jialin/045E58135E57FC3C/UBUNTU/Evaluation_segmented/overcast-summer/rear/segmentation";
     // string seg_path=kitti360+"data_2d_raw/2013_05_28_drive_0010_sync/image_00/segmentation";
     vector<cv::String> fn_seg;
     glob(seg_path, fn_seg, false);
 
-    string raw_path = kitti360+"data_2d_raw/2013_05_28_drive_0010_sync/image_00/data_rect";
+    // string raw_path = kitti360+"data_2d_raw/2013_05_28_drive_0010_sync/image_00/data_rect";
+    string raw_path = "/media/jialin/045E58135E57FC3C/UBUNTU/Evaluation_segmented/overcast-summer/rear";
     vector<cv::String> fn_raw;
     glob(raw_path, fn_raw, false);
 
     // string segrgb_path = kitti360+"data_2d_raw/2013_05_28_drive_0010_sync/image_00/segmentation_rgb";
-    string segrgb_path=kitti360+"data_2d_semantics/train/2013_05_28_drive_0010_sync/image_00/semantic_rgb";
+    // string segrgb_path=kitti360+"data_2d_semantics/train/2013_05_28_drive_0010_sync/image_00/semantic_rgb";
+    string segrgb_path="/media/jialin/045E58135E57FC3C/UBUNTU/Evaluation_segmented/overcast-summer/rear";
     vector<cv::String> fn_segrgb;
     glob(segrgb_path, fn_segrgb, false);
 
 
     //perform template matching image by image
-    // for(int i=369; i<fn_seg.size()-1; i++){
-    for(int i=0; i<2680; i+=5){
-        string kw = "0000002686";
-        int str_len = fn_seg[i].length();
-        string frameId = fn_seg[i].substr(str_len-14, 10);
-        if(kw!=frameId){
-            continue;
-        }
-        cout<<"current image: "<<frameId<<endl;
+    for(int i=0; i<fn_seg.size()-1; i++){
+    // for(int i=0; i<2680; i+=5){
+        // string kw = "0000002161";
+        // int str_len = fn_seg[i].length();
+        // string frameId = fn_seg[i].substr(str_len-14, 10);
+        // if(kw!=frameId){
+        //     continue;
+        // }
+        // cout<<"current image: "<<frameId<<endl;
 
         //read segmentation image and rgb image, select template and build result matrix
         Mat ref_Mat = imread(fn_seg[i], IMREAD_GRAYSCALE);
-        Mat src_Mat = imread(fn_seg[i+1], IMREAD_GRAYSCALE);
+        // Mat src_Mat = imread(fn_seg[i+1], IMREAD_GRAYSCALE);
         Mat ref_color = imread(fn_raw[i], IMREAD_COLOR);
-        Mat src_color = imread(fn_raw[i+1], IMREAD_COLOR);
+        // Mat src_color = imread(fn_raw[i+1], IMREAD_COLOR);
         Mat ref_segrgb = imread(fn_segrgb[i],IMREAD_COLOR);
-        Mat src_segrgb = imread(fn_segrgb[i+1],IMREAD_COLOR);
-        if (src_Mat.empty() || ref_Mat.empty() || ref_color.empty() || src_color.empty() 
-            || ref_segrgb.empty() || src_segrgb.empty())
+        // Mat src_segrgb = imread(fn_segrgb[i+1],IMREAD_COLOR);
+        if (ref_Mat.empty() || ref_color.empty() || ref_segrgb.empty())
         {
             cout << "failed to read image" << endl;
             return EXIT_FAILURE;
         }
 
-        int w = 30;
-        int h = 30;
-        int x,y;
+
+        int w = 15;
+        int h = 15;
+        // int x,y;
         start = clock();
         
-        vector<vector<int>> vvTemplates;
-        bool templateOkay = templateFinder(vvTemplates,ref_segrgb, ref_Mat, w, h, ignoreLabels, goodLabels);
+        vector<vector<int>> coarseTemplates;
+        vector<vector<int>> fineTemplates;
+        bool templateOkay = templateFinder(coarseTemplates, fineTemplates,ref_segrgb, ref_Mat, w, h, ignoreLabels);
         end=clock();
         t_diff=(double)(end-start)/CLOCKS_PER_SEC;
         cout<<"time to find template: "<<t_diff<<endl;
@@ -447,140 +624,256 @@ int main(int argc, char **argv)
             cout<<"skipped img number: "<<imgSkip<<endl;
             continue;
         }
-
-        for(size_t i=0; i<vvTemplates.size(); i++){
-            x=vvTemplates[i][0];
-            y=vvTemplates[i][1];
-            // cout<<vvTemplates[i][2]<<endl;
-            // cout<<vvTemplates[i][3]<<endl;
-            // cout<<vvTemplates[i][4]<<endl;
-            // cout<<"xy: "<<x<<" "<<y<<endl;
-            set<int> essential_sem; //stores the essential semantic labels in template, the matched template must have these semantic labels
-            essential_sem.insert(vvTemplates[i][2]);
-            essential_sem.insert(vvTemplates[i][3]);
-            essential_sem.insert(vvTemplates[i][4]);
-        
-            Rect r(x,y, w,h);
-            Mat temp_Mat = ref_Mat(r);
-            Mat src(src_Mat.size(),CV_8UC1);
-            src_Mat.convertTo(src, CV_8UC1);
-            Mat temp(temp_Mat.size(),CV_8UC1);
-            temp_Mat.convertTo(temp, CV_8UC1);
-            Mat result = Mat::zeros(src.rows - temp.rows +1,src.cols - temp.cols +1, CV_32FC1);
-            Mat result_filter = Mat::zeros(src.rows - temp.rows +1,src.cols - temp.cols +1, CV_32SC1);
+        cout<<"fine template found: "<<fineTemplates.size()<<",    coarse template found: "<<coarseTemplates.size()<<endl;
+        // exit(0);
 
 
-            //show template in rgb image
-            // rectangle(ref_color, r, Scalar(255, 0, 255), 2, LINE_AA);
-            // imshow("template_color", ref_color);
-            // rectangle(ref_segrgb, r, Scalar(0, 0, 255), 2, LINE_AA);
-            // imshow("template_rgb", ref_segrgb);
-            // waitKey(0);
-            // cout<<"program continues"<<endl;
-
-
-            // //show the number of each semantic label in template
-            // showSemNum(temp);
-
-
-            //calculate ConPro for each element of result matrix
-            
-            for (int i=0; i<result.rows; i++)
+        for(int ii=1; ii<12; ii++){
+            start=clock();
+            Mat src_Mat = imread(fn_seg[i+ii*10], IMREAD_GRAYSCALE);
+            // Mat src_color = imread(fn_raw[i+1], IMREAD_COLOR);
+            Mat src_segrgb = imread(fn_segrgb[i+ii*10],IMREAD_COLOR);
+            if (src_Mat.empty() || src_segrgb.empty())
             {
-                for (int j=0; j<result.cols; j++)
-                {
-                    Mat src_part(src, cv::Rect(j,i,temp.cols, temp.rows));
-                    ConPro = ConPro_calculator(src_part, temp, ConProMat);
-                    result.at<float>(i,j) = ConPro;
-                    int fil=resultFilter(src_part, essential_sem);
-                    // if(fil==1){
-                    //     cout<<fil<<endl;
-                    // }
-                    result_filter.at<int>(i,j) = fil;
-                    // cout<<src_part.rowRange(0,5).colRange(0,5)<<endl;
-                    // exit(0);
-                    
-                }
+                cout << "failed to read image" << endl;
+                return EXIT_FAILURE;
             }
-            
-
-            //draw a rectangle on source image at the position where mutial information is the highest
-            Mat mask = result_filter>0;
-            cout<<"this is reached"<<endl;
-            // cout<<mask.rowRange(100,105).colRange(565,570)<<endl;
-            
-            // Mat filtered_result;
-            // result.copyTo(filtered_result,mask);
-            // cout<<filtered_result.rowRange(100,105).colRange(565,570)<<endl;
-            // cout<<filtered_result.rowRange(0,5).colRange(0,5)<<endl;
-            minMaxLoc(result, &val_min, &val_max, NULL, &pt_max,mask);
-            // cout<<result.rowRange(pt_max.y,pt_max.y+10).colRange(pt_max.x,pt_max.x+10)<<endl;
-            // cout<<val_max<<endl;
-            // cout<<val_min<<endl;
-            cout<<pt_max.x<<" , "<<pt_max.y<<endl;
-            
-            // if(abs(x-pt_max.x)>50 || abs(y-pt_max.y)>50){
-            if(8>7){
-                mismatch_vec.push_back(i);
-                // cout<<"match too far away: "<<frameId<<endl;
-                // cout<<abs(x-pt_max.x)<<", "<<abs(y-pt_max.y)<<endl;
-                // rectangle(ref_segrgb, r, Scalar(0, 0, 255), 2, LINE_AA);
-                rectangle(src_segrgb, Rect(pt_max.x, pt_max.y, temp.cols, temp.rows), Scalar(0, 0, 255), 2, LINE_AA);
-                float threshold = float((val_max-val_min)*0.99+val_min);
 
 
-                // cout<<"ManualCheck for ground truth position"<<endl;
-                // Mat srcPart = src(r);
-                // ManualCheck(temp, srcPart, ConProMat);
+            int fineMatchedNum=0;
+            vector<vector<int>> fineMatchedPosition;
 
-                // cout<<"ManualCheck for best match position"<<endl;
-                // srcPart = src(Rect(pt_max.x, pt_max.y, w,h));
-                // ManualCheck(temp, srcPart, ConProMat);
-                // waitKey(0); 
-
-
-                for(int i=0; i<result.rows; i++){
-                    for(int j=0; j<result.cols; j++){
-                        if(result.at<float>(i,j)>threshold){
-                            // drawMarker(src_color, Point(j,i), Scalar(0,0,255), MARKER_TILTED_CROSS, 5, 1,8);
-                            drawMarker(src_segrgb, Point(j,i), Scalar(255,255,255), MARKER_TILTED_CROSS, 5, 1,8);
-                        }
-                        }
+            for(size_t i=0; i<fineTemplates.size(); i++){
+                int xx=fineTemplates[i][0];
+                int yy=fineTemplates[i][1];
+                set<int> essential_sem; //stores the essential semantic labels in template, the matched template must have these semantic labels
+                for(size_t t = 2; t<fineTemplates[i].size(); t++){
+                    essential_sem.insert(fineTemplates[i][t]);
                 }
                 
-   
-                Mat heatMap;
-                normalize(result, heatMap, 0, 255, NORM_MINMAX);
-                heatMap.convertTo(heatMap, CV_8UC1);
-                applyColorMap(heatMap, heatMap, COLORMAP_JET);
+                Rect r(xx,yy, w,h);
+                Mat temp_Mat = ref_Mat(r);
+                Mat src(src_Mat.size(),CV_8UC1);
+                src_Mat.convertTo(src, CV_8UC1);
+                Mat temp(temp_Mat.size(),CV_8UC1);
+                temp_Mat.convertTo(temp, CV_8UC1);
+                Mat result = Mat::zeros(src.rows - temp.rows +1,src.cols - temp.cols +1, CV_32FC1);
+                // Mat result_filter = Mat::zeros(src.rows - temp.rows +1,src.cols - temp.cols +1, CV_32SC1);
 
+                int yStart=0, xStart=0, yEnd=result.rows, xEnd=result.cols;
+                if(!fineMatchedPosition.empty()){
+                    vector<int> lastPosition = fineMatchedPosition[fineMatchedPosition.size()-1];
+                    int xMatched = lastPosition[0];
+                    int yMatched = lastPosition[1];
+                    // int iMatched = lastPosition[2];
+                    int xLast = lastPosition[2];
+                    int yLast = lastPosition[3];
+                    //如果当前template在上一个matched template右边，就从上一个template matched的位置往右下边找
+                    if(xx>xLast){
+                        xStart=xMatched;
+                        yStart=yMatched;
+                        xEnd=result.cols;
+                        yEnd=result.rows;
+                    }
+                    //如果当前template在上一个matched template左边，就从上一个template matched的位置往下找，从0找到template matched的位置
+                    if(xx<xLast){
+                        xStart=0;
+                        yStart=yMatched;
+                        xEnd=xMatched;
+                        yEnd=result.rows;
+                    }
+                }
 
-                // vector<int> compression_params;
-                // compression_params.push_back(IMWRITE_PNG_COMPRESSION);
-                // compression_params.push_back(3);
-                // bool flag = false;
-                // // flag = imwrite(kitti360 + "MI_images/"+frameId+"_color_temp.png", ref_color, compression_params);
-                // // flag = imwrite(kitti360 + "MI_images/"+frameId+"_color_match.png", src_color, compression_params);
-                // flag = imwrite(kitti360 + "MI_images/strange_images/"+frameId+"_seg_temp.png", ref_segrgb, compression_params);
-                // flag = imwrite(kitti360 + "MI_images/strange_images/"+frameId+"_seg_match.png", src_segrgb, compression_params);
-                // flag = imwrite(kitti360 + "MI_images/strange_images/"+frameId+"_heatMap.png", heatMap, compression_params);
-                // imshow("template_rgb", ref_segrgb);
-                imshow("heatmap", heatMap);
-                imshow("src_rgb", src_segrgb);
-                waitKey(0);
+                bool tempMatched =false;
+                for (int y=yStart; y<yEnd; y++)
+                {
+                    for (int x=xStart; x<xEnd; x++)
+                    {
+                        // Mat srcClone = src_segrgb.clone();
+                        // Rect r(x,y, w,h);
+                        // rectangle(srcClone, r, Scalar(255, 255, 255), 2, LINE_AA);
+                        // imshow("refseg", ref_segrgb);
+                        // imshow("template_rgb", srcClone);
+                        // waitKey(0);
+                        Mat src_part(src, cv::Rect(x,y,w,h));
+                        set<int>major_sem = findMajorLabel(src_part, 0.15);
+                        if(major_sem!=essential_sem){
+                            continue;
+                        }
+                        vector<int> currentP{x,y};
+                        bool overlap = nms(currentP, fineMatchedPosition, w, h);
+                        if(overlap==true){
+                            continue;
+                        }
+                        ConPro = ConPro_calculator(src_part, temp, ConProMat);
+                        if(ConPro<log(0.3)*w*h){
+                            continue;
+                        }
+                        // 先找到3个label的模板匹配，以这些label划出2个label的模板的搜索范围。
+                        //然后以匹配到的2个label的模板，来划出下一个2个label的模板的搜索范围
+                        
+                        fineMatchedNum+=1;
+                        vector<int> position{x,y,xx,yy};
+                        fineMatchedPosition.push_back(position);
+
+                        // Rect r(x,y, w,h);
+                        // Rect rr(xx,yy, w,h);
+                        // rectangle(ref_segrgb, rr, Scalar(255, 0, 0), 2, LINE_AA);
+                        // rectangle(src_segrgb, r, Scalar(0, 0, 255), 2, LINE_AA);
+                        // imshow("ref", ref_segrgb);
+                        // imshow("template", src_segrgb);
+                        // waitKey(0);
+                        tempMatched=true;
+                        break;
+                    }
+                    if(tempMatched==true){
+                        break;
+                    }
+                }
             }
+            end=clock();
+            t_diff=(double)(end-start)/CLOCKS_PER_SEC;
+            cout<<"time taken for fineTemplate matching: "<<t_diff<<endl;
+
+            // exit(0);
+
+
+
+            vector<int> xVec;
+            vector<int> yVec;
+            vector<int> xRefVec;
+            vector<int> yRefVec;
+            // sortMatchedPoint(xVec, yVec, xRefVec, yRefVec, fineMatchedPosition);
+            int coarseMatchedNum=0;
+            vector<vector<int>> coarseMatchedPosition;
+
+            for(size_t i=0; i<coarseTemplates.size(); i++){
+                int xx=coarseTemplates[i][0];
+                int yy=coarseTemplates[i][1];
+                set<int> essential_sem; //stores the essential semantic labels in template, the matched template must have these semantic labels
+                for(size_t t = 2; t<coarseTemplates[i].size(); t++){
+                    essential_sem.insert(coarseTemplates[i][t]);
+                }
+
+                Rect r(xx,yy, w,h);
+                // Rect rr(xx,yy, w,h);
+                // rectangle(ref_segrgb, r, Scalar(255, 0, 0), 2, LINE_AA);
+                // imshow("refseg", ref_segrgb);
+                Mat temp_Mat = ref_Mat(r);
+                Mat src(src_Mat.size(),CV_8UC1);
+                src_Mat.convertTo(src, CV_8UC1);
+                Mat temp(temp_Mat.size(),CV_8UC1);
+                temp_Mat.convertTo(temp, CV_8UC1);
+                Mat result = Mat::zeros(src.rows - temp.rows +1,src.cols - temp.cols +1, CV_32FC1);
+
+                sortMatchedPoint(xVec, yVec, xRefVec, yRefVec, fineMatchedPosition);
+                int yStart=0, xStart=0, yEnd=result.rows, xEnd=result.cols;
+                //高度搜索范围
+                for(size_t t=0; t<xVec.size(); t++){
+                    //从上面的match点往下找，如果当前点比某个match点低,那它的高度搜索范围就是从上一个match点到当前match点
+                    if(yy<yRefVec[t]){
+                        //如果比第一个match点低，那高度搜索范围就是从顶边到第一个match点
+                        if(t==0){
+                            yStart=0;
+                            yEnd=yVec[t];
+                            break;
+                        }
+                        else{
+                            yStart=yVec[t-1];
+                            yEnd=yVec[t];
+                            break;
+                        }
+                    }
+                    //如果比最低match点还低，那就是最低match点到底边
+                    else if(t==xVec.size()-1){
+                        yStart=yVec[t];
+                        yEnd=result.rows;
+                        break;
+                    }
+                }
+                //宽度搜索范围
+                for(size_t t=0; t<xVec.size(); t++){
+                    //从左往右找
+                    if(xx<xRefVec[t]){
+                        //如果比第一个match点左，那宽度搜索范围就是从左边到第一个match点
+                        if(t==0){
+                            xStart=0;
+                            xEnd=xVec[t];
+                            break;
+                        }
+                        else{
+                            xStart=xVec[t-1];
+                            xEnd=xVec[t];
+                            break;
+                        }
+                    }
+                    //如果比最右match点还右，那就是最右match点到右边
+                    else if(t==xVec.size()-1){
+                        xStart=xVec[t];
+                        xEnd=result.cols;
+                        break;
+                    }
+                }
+
+                if(!coarseMatchedPosition.empty()){
+                    vector<int> lastMatchedP = coarseMatchedPosition[coarseMatchedPosition.size()-1];
+                    yStart=lastMatchedP[1];
+                }
+
+                //calculate ConPro for each element of result matrix
+                bool tempMatched =false;
+                for (int y=yStart; y<yEnd; y+=3)
+                {
+                    for (int x=xStart; x<xEnd; x+=3)
+                    {
+                        vector<int> currentP{x,y};
+                        Mat srcClone = src_segrgb.clone();
+                        Rect rrr(x,y, w,h);
+                        // rectangle(srcClone, rrr, Scalar(255, 255, 255), 2, LINE_AA);
+                        // imshow("template_rgb", srcClone);
+                        // waitKey(0);
+                        Mat src_part(src, cv::Rect(x,y,temp.cols, temp.rows));
+                        // set<int>major_sem = findMajorLabel(src_part, 0.4);
+                        // if(major_sem!=essential_sem){
+                        //     continue;
+                        // }
+                        bool overlap = nms(currentP,coarseMatchedPosition,w,h);
+                        if(overlap==true){
+                            continue;
+                        }
+                        ConPro = ConPro_calculator(src_part, temp, ConProMat);
+                        if(ConPro<log(0.3)*temp.cols*temp.rows){
+                            continue;
+                        }
+
+                        // 先找到3个label的模板匹配，以这些label划出2个label的模板的搜索范围。
+                        //然后以匹配到的2个label的模板，来划出下一个2个label的模板的搜索范围
+                        vector<int>position{x,y,xx,yy};
+                        bool fine=checkFineMatch(position, coarseMatchedPosition);
+
+                        coarseMatchedPosition.push_back(position);
+                        coarseMatchedNum+=1;
+                        Rect r(x,y, w,h);
+                        rectangle(src_segrgb, r, Scalar(255, 0, 0), 2, LINE_AA);
+
+                        if(fine==true){
+                            fineMatchedPosition.push_back(position);
+                            rectangle(src_segrgb, r, Scalar(0, 0, 255), 2, LINE_AA);
+                        }
+                        // imshow("template", src_segrgb);
+                        // waitKey(0);
+                        tempMatched=true;
+                        break;
+                    }
+                    if(tempMatched==true){
+                        break;
+                    }
+                }
+            }
+            end=clock();
+            t_diff=(double)(end-start)/CLOCKS_PER_SEC;
+            cout<<"fineMatched: "<<fineMatchedNum<<",  "<<"coarseMatched: "<<coarseMatchedNum<<" time taken: "<<t_diff<<endl;
         }
-        vector<int> compression_params;
-        compression_params.push_back(IMWRITE_PNG_COMPRESSION);
-        compression_params.push_back(3);
-        bool flag = false;
-        // flag = imwrite(kitti360 + "MI_images/"+frameId+"_color_temp.png", ref_color, compression_params);
-        // flag = imwrite(kitti360 + "MI_images/"+frameId+"_color_match.png", src_color, compression_params);
-        flag = imwrite(kitti360 + "MI_images/strange_images/"+frameId+"_seg_temp.png", ref_segrgb, compression_params);
-        flag = imwrite(kitti360 + "MI_images/strange_images/"+frameId+"_seg_match.png", src_segrgb, compression_params);
-        // flag = imwrite(kitti360 + "MI_images/strange_images/"+frameId+"_heatMap.png", heatMap, compression_params);
+        break;
     }
-    // for(int i=0; i<mismatch_vec.size(); i++){
-    //         cout<<i<<endl;
-    // }
 }
