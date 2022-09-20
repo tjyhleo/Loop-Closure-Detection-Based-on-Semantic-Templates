@@ -99,7 +99,7 @@ void ReadVocabulary(ORB_SLAM2::ORBVocabulary *voc){
 
 void ReadImg(vector<cv::Mat> &vmImages, cv::String img_path){
     vector<cv::String> fn_img;
-    glob(img_path, fn_img, true);
+    glob(img_path, fn_img, false);
     for(size_t i=0; i<fn_img.size();i++){
         vmImages.push_back(imread(fn_img[i],IMREAD_GRAYSCALE));
         // cv::imshow("asdf",vmImages[i]);
@@ -121,11 +121,11 @@ void BuildVoc(ORB_SLAM2::ORBVocabulary *voc, vector<cv::Mat>vmDescriptors){
 
 
 bool DetectLoop(vector<cv::Mat> refDes, vector<cv::Mat> queryDes){
-    cv::Mat currentDes = refDes[refDes.size()-1];
+    cv::Mat currentDes = refDes[0];
     DBoW2::BowVector cBowVec = ComputeBoW(currentDes);
     float minScore=1.;
     bool detected = false;
-    for(size_t i=0; i<refDes.size()-1; i+=5){
+    for(size_t i=1; i<refDes.size(); i+=1){
         DBoW2::BowVector BowVec = ComputeBoW(refDes[i]);
         float s = mpVocabulary->score(cBowVec, BowVec);
         cout<<i<<": "<<s<<endl;
@@ -136,7 +136,7 @@ bool DetectLoop(vector<cv::Mat> refDes, vector<cv::Mat> queryDes){
 
     cout<<"minScore: "<<minScore<<endl;
 
-    for(size_t i=80; i<queryDes.size(); i++){
+    for(size_t i=0; i<queryDes.size(); i++){
         DBoW2::BowVector BowVec = ComputeBoW(queryDes[i]);
         float s = mpVocabulary->score(cBowVec, BowVec);
         cout<<"s: "<<s<<endl;
@@ -155,11 +155,17 @@ int main(){
     //读取图片
     cout<<"reading images..."<<endl;
     vector<cv::Mat> vmRefImages;
-    cv::String refImg_path = "/media/jialin/045E58135E57FC3C/UBUNTU/Evaluation_data/overcast/scene2/*.png";
+    cv::String refImg_path = "/media/jialin/045E58135E57FC3C/UBUNTU/Evaluation_segmented/Evaluation/ref/scene3/*.jpg";
     ReadImg(vmRefImages, refImg_path);
     vector<cv::Mat> vmQryImages;
-    cv::String qryImg_path = "/media/jialin/045E58135E57FC3C/UBUNTU/Evaluation_data/night/scene2/*.png";
+    cv::String qryImg_path = "/media/jialin/045E58135E57FC3C/UBUNTU/Evaluation_segmented/Evaluation/night/scene3/*.jpg";
     ReadImg(vmQryImages, qryImg_path);
+
+    cout<<vmRefImages.size()<<",   "<<vmQryImages.size()<<endl;
+    if(vmRefImages.empty() || vmQryImages.empty()){
+        cout<<"images not read successfully"<<endl;
+        exit(0);
+    }
 
     //提取ORB descripter
     cout<<"extracting ORB descriptors..."<<endl;
@@ -167,6 +173,8 @@ int main(){
     ExtractORB(vmRefImages, vmRefDescriptors);
     vector<cv::Mat> vmQryDescriptors;
     ExtractORB(vmQryImages, vmQryDescriptors);
+    cout<<vmRefDescriptors.size()<<endl;
+    cout<<vmQryDescriptors.size()<<endl;
     
     //加载字典
     cout<<"loading vocabulary..."<<endl;
