@@ -65,6 +65,9 @@ vector<size_t> sort_indexes_e(vector<T> &v)
 void sortVec(vector<int>& inVec){
     sort(inVec.begin(), inVec.end());
 }
+
+
+
 int main(){
 // Mat mat2;
 // FileStorage fs2;
@@ -93,10 +96,16 @@ assert(testMat.type()==4);
 int score = MaxComb(testMat);
 // cout<<score<<endl;
 
-testMat.convertTo(testMat, CV_32FC1);
-cv::Mat out;
-log(testMat, out);
-cout<<out<<endl;
+vector<vector<int>>asdf;
+vector<int>aa{1,2,3};
+asdf.push_back(aa);
+asdf.push_back(aa);
+asdf[1][2]=0;
+bool ddd=false;
+if(ddd){
+    cout<<asdf[1][1]<<", "<<asdf[1][2]<<endl;
+}
+
 
 
 return 0;

@@ -294,7 +294,6 @@ bool templateFinder(vector<vector<int>>& coarseTemp,vector<vector<int>>& fineTem
                     for(set<uchar>::iterator it=major_sem.begin(); it!=major_sem.end(); it++){
                         xy.push_back(int(*it));
                     }
-                    xy.push_back(0);//this is a bool value to see if this template has been matched
                     coarseTemp.push_back(xy);
                     rectangle(img, r, Scalar(255, 255, 255), 1, LINE_AA);
                     // imshow("template_rgb", img);
@@ -525,178 +524,9 @@ bool checkFineMatch(vector<int> currentMatch, vector<vector<int>>pastMatch){
     return fine;
 }
 
-//find a group of templates that have the same labels as input template and are closest to input template
-bool findGroup(vector<vector<int>>& tempGroup, vector<vector<int>> allTemplates, vector<int>targetLabels){
-    bool groupFound=false; //if a group of templates are found
-    vector<int> mostClose; //the template that's closet to input template
-    vector<int> secondClose; //the template that's second close to input template
-    float minD, minD2; //minD distance between mostClose and input template, minD2 distance btw secondClose and input template
-    size_t inputIdx = tempGroup[0][2]; //index of input template
-    vector<int>inputP{tempGroup[0][0], tempGroup[0][1]}; //x,y of input template
-    for(size_t st=0; st<allTemplates.size(); st++){
-        //if the current template is the input template, move on
-        if(st==inputIdx){
-            continue;
-        }
-        vector<int>Labels{allTemplates[st][2],allTemplates[st][3]}; //labels of current template
-        //if current template label is different from the input template, move on
-        if(Labels!=targetLabels){
-            continue;
-        }
-        vector<int>currentP{allTemplates[st][0],allTemplates[st][1]}; //x,y of current template
-        float distance = norm(inputP, currentP);
-        //if this is the first template, mark it as mostClose
-        if(mostClose.empty()){
-            mostClose=currentP;
-            mostClose.push_back(int(st));
-            minD=distance;
-        }
-        else if(distance<minD){
-            secondClose=mostClose;
-            minD2=minD;
-            mostClose=currentP;
-            mostClose.push_back(int(st));
-            minD=distance;
-        }
-        else if(secondClose.empty()){
-            secondClose=currentP;
-            secondClose.push_back(int(st));
-            minD2=distance;
-        }
-        else if(distance<minD2){
-            secondClose=currentP;
-            secondClose.push_back(int(st));
-            minD2=distance;
-        }
-    }
-    if(!mostClose.empty() && !secondClose.empty()){
-        groupFound=true;
-        tempGroup.push_back(mostClose);
-        tempGroup.push_back(secondClose);
-    }
-    return groupFound;
-}
-
-
-bool matchGroup(vector<vector<int>>qryGroup, vector<vector<int>>refGroup){
-    bool matched=false;
-    float thre=0.1;
-    vector<int>qryP1{qryGroup[0][0],qryGroup[0][1]};
-    vector<int>qryP2{qryGroup[1][0],qryGroup[1][1]};
-    vector<int>qryP3{qryGroup[2][0],qryGroup[2][1]};
-    vector<int>refP1{refGroup[0][0],refGroup[0][1]};
-    vector<int>refP2{refGroup[1][0],refGroup[1][1]};
-    vector<int>refP3{refGroup[2][0],refGroup[2][1]};
-    float qryD1=norm(qryP1, qryP2);
-    float qryD2=norm(qryP1, qryP3);
-    float qryD3=norm(qryP2, qryP3);
-    float refD1=norm(refP1, refP2);
-    float refD2=norm(refP1, refP3);
-    float refD3=norm(refP2, refP3);
-    float qryR1=qryD1/qryD2;
-    float qryR2=qryD1/qryD3;
-    float qryR3=qryD2/qryD3;
-    float refR1=refD1/refD2;
-    float refR2=refD1/refD3;
-    float refR3=refD2/refD3;
-    float diffQR1=abs(qryR1-refR1)/refR1;
-    float diffQR2=abs(qryR2-refR2)/refR2;
-    float diffQR3=abs(qryR3-refR3)/refR3;
-    if(diffQR1<thre && diffQR2<thre && diffQR3<thre){
-        matched=true;
-    }
-    return matched;
-}
-
-int Match(vector<vector<int>> qryTemplates, vector<vector<int>> refTemplates, Mat refImg, Mat qryImg, int w, int h, bool display){
-    int matches=0;
-    for(size_t st=0; st<qryTemplates.size(); st++){
-        vector<int> qryTemplate=qryTemplates[st];
-        //if this template has been matched, move on
-        if(qryTemplate[4]==1){
-            continue;
-        }
-        vector<int> qryLabels{qryTemplate[2], qryTemplate[3]};//semantic labels of current template
-        //find a group of templates close to the current template
-        vector<vector<int>>qryGroup;//a group of close query templates, [[x,y,idx],[x,y,idx],[x,y,idx]]
-        vector<int> xyIdx{qryTemplate[0],qryTemplate[1],int(st)};
-        qryGroup.push_back(xyIdx);
-        bool groupFound = findGroup(qryGroup, qryTemplates, qryLabels);
-        if(groupFound==true){
-            // cout<<"query group is found"<<endl;
-        }
-        //if we cannot find a group for this query template, move on
-        if(groupFound==false){
-            continue;
-        }
-
-        for(size_t r=0; r<refTemplates.size(); r++){
-            vector<int>refTemplate=refTemplates[r];
-            //if this template has been matched, move on
-            if(refTemplate[4]==1){
-                continue;
-            }
-            //if the reference template label is not the same as the query template label, move on
-            vector<int>refLabels{refTemplate[2],refTemplate[3]};
-            if(refLabels!=qryLabels){
-                continue;
-            }
-            //find a group of templates close to the current template
-            vector<vector<int>>refGroup;//a group of close ref templates, [[x,y,idx],[x,y,idx],[x,y,idx]]
-            vector<int> xyIdx{refTemplate[0],refTemplate[1],int(r)};
-            refGroup.push_back(xyIdx);
-            bool groupFound = findGroup(refGroup, refTemplates, refLabels);
-            if(groupFound==true){
-                // cout<<"ref group is found"<<endl;
-            }
-            //if we cannot find a group for this reference template, move on
-            if(groupFound==false){
-                continue;
-            }
-            //match the refGroup and qryGroup
-            bool groupMatched = matchGroup(qryGroup, refGroup);
-            //if the groups are matched, turn the flag of all templates in both groups to 1
-            if(groupMatched==true){
-                // cout<<"group is matched"<<endl;
-                for(size_t tt=0; tt<qryGroup.size(); tt++){
-                    int idx = qryGroup[tt][2];
-                    qryTemplates[idx][4]=1;
-                    Rect r(qryTemplates[idx][0],qryTemplates[idx][1], w, h);
-                    rectangle(qryImg, r, Scalar(0, 0, 255), 2, LINE_AA);
-                }
-                for(size_t tt=0; tt<refGroup.size(); tt++){
-                    int idx = refGroup[tt][2];
-                    refTemplates[idx][4]=1;
-                    Rect r(refTemplates[idx][0],refTemplates[idx][1], w, h);
-                    rectangle(refImg, r, Scalar(0, 0, 255), 2, LINE_AA);
-                }
-                // cout<<"this is reached"<<endl;
-                if(display==true){
-                    imshow("query image", qryImg);
-                    imshow("refrence image", refImg);
-                    waitKey(0);
-                }
-                break;
-            }
-        }
-    }
-    //count the number of templates matched in query templates
-    for(size_t st=0; st<qryTemplates.size(); st++){
-        if(qryTemplates[st][4]==1){
-            matches+=1;
-        }
-    }
-
-    return matches;
-}
-
-
-
-
-
 int main(int argc, char **argv)
 {
-    bool display=false;
+    bool display=true;
     bool matchFineTemp=false;
     clock_t start, end; //timing
     double t_diff; //timing
@@ -748,7 +578,7 @@ int main(int argc, char **argv)
     glob(seg_path, fn_seg, false);
 
 
-    string seg_path2 = "/media/jialin/045E58135E57FC3C/UBUNTU/Evaluation_segmented/dawn/rear/segmentation";
+    string seg_path2 = "/media/jialin/045E58135E57FC3C/UBUNTU/Evaluation_segmented/night/rear/segmentation";
     // string seg_path=kitti360+"data_2d_raw/2013_05_28_drive_0010_sync/image_00/segmentation";
     vector<cv::String> fn_seg2;
     glob(seg_path2, fn_seg2, false);
@@ -765,7 +595,7 @@ int main(int argc, char **argv)
     glob(segrgb_path, fn_segrgb, false);
 
 
-    string segrgb_path2 = "/media/jialin/045E58135E57FC3C/UBUNTU/Evaluation_segmented/dawn/rear/seg-rgb";
+    string segrgb_path2 = "/media/jialin/045E58135E57FC3C/UBUNTU/Evaluation_segmented/night/rear/seg-rgb";
     // string seg_path=kitti360+"data_2d_raw/2013_05_28_drive_0010_sync/image_00/segmentation";
     vector<cv::String> fn_segrgb2;
     glob(segrgb_path2, fn_segrgb2, false);
@@ -801,9 +631,9 @@ int main(int argc, char **argv)
         // int x,y;
         start = clock();
         
-        vector<vector<int>> refTemplates;
+        vector<vector<int>> coarseTemplates;
         vector<vector<int>> fineTemplates;
-        bool templateOkay = templateFinder(refTemplates, fineTemplates,ref_segrgb, ref_Mat, w, h, ignoreLabels);
+        bool templateOkay = templateFinder(coarseTemplates, fineTemplates,ref_segrgb, ref_Mat, w, h, ignoreLabels);
         end=clock();
         t_diff=(double)(end-start)/CLOCKS_PER_SEC;
         cout<<"time to find template: "<<t_diff<<endl;
@@ -813,14 +643,16 @@ int main(int argc, char **argv)
             cout<<"skipped img number: "<<imgSkip<<endl;
             continue;
         }
-        cout<<"ref template found: "<<refTemplates.size()<<endl;
+        cout<<"fine template found: "<<fineTemplates.size()<<",    coarse template found: "<<coarseTemplates.size()<<endl;
         // exit(0);
 
 
-        for(int ii=1; ii<8; ii++){
+        for(int ii=0; ii<8; ii++){
             start=clock();
-            Mat src_Mat = imread(fn_seg2[ii+8], IMREAD_GRAYSCALE);
-            Mat src_segrgb = imread(fn_segrgb2[ii+8], IMREAD_COLOR);
+            // Mat src_Mat = imread(fn_seg[i+17+ii*1], IMREAD_GRAYSCALE);
+            // Mat src_segrgb = imread(fn_segrgb[i+17+ii*1],IMREAD_COLOR);
+            Mat src_Mat = imread(fn_seg2[ii], IMREAD_GRAYSCALE);
+            Mat src_segrgb = imread(fn_segrgb2[ii], IMREAD_COLOR);
 
             if (src_Mat.empty() || src_segrgb.empty())
             {
@@ -828,28 +660,274 @@ int main(int argc, char **argv)
                 return EXIT_FAILURE;
             }
 
-            vector<vector<int>> qryTemplates;
-            vector<vector<int>> fineTemplates2;
-            bool templateOkay = templateFinder(qryTemplates, fineTemplates2,src_segrgb, src_Mat, w, h, ignoreLabels);
-            // end=clock();
-            // t_diff=(double)(end-start)/CLOCKS_PER_SEC;
-            // cout<<"time to find template: "<<t_diff<<endl;
-            if(templateOkay==false){
-                cout<<"image"<<to_string(i)<<"doesn't have a good template"<<endl;
-                imgSkip+=1;
-                cout<<"skipped img number: "<<imgSkip<<endl;
-                continue;
-            }
-            // cout<<"qry template found: "<<qryTemplates.size()<<endl;
 
-            Mat refClone = ref_segrgb.clone();
-            Mat qryClone = src_segrgb.clone();
-            int templateMatched = Match(qryTemplates, refTemplates, refClone, qryClone, w, h, display);
-            float matchedPortion=float(templateMatched)/float(qryTemplates.size());
+            int fineMatchedNum=0;
+            vector<vector<int>> fineMatchedPosition;
+
+            if(matchFineTemp==true){
+                for(size_t i=0; i<fineTemplates.size(); i++){
+                    int xx=fineTemplates[i][0];
+                    int yy=fineTemplates[i][1];
+                    set<int> essential_sem; //stores the essential semantic labels in template, the matched template must have these semantic labels
+                    for(size_t t = 2; t<fineTemplates[i].size(); t++){
+                        essential_sem.insert(fineTemplates[i][t]);
+                    }
+                    
+                    Rect r(xx,yy, w,h);
+                    Mat temp_Mat = ref_Mat(r);
+                    Mat src(src_Mat.size(),CV_8UC1);
+                    src_Mat.convertTo(src, CV_8UC1);
+                    Mat temp(temp_Mat.size(),CV_8UC1);
+                    temp_Mat.convertTo(temp, CV_8UC1);
+                    Mat result = Mat::zeros(src.rows - temp.rows +1,src.cols - temp.cols +1, CV_32FC1);
+                    // Mat result_filter = Mat::zeros(src.rows - temp.rows +1,src.cols - temp.cols +1, CV_32SC1);
+
+                    int yStart=0, xStart=0, yEnd=result.rows, xEnd=result.cols;
+                    if(!fineMatchedPosition.empty()){
+                        vector<int> lastPosition = fineMatchedPosition[fineMatchedPosition.size()-1];
+                        int xMatched = lastPosition[0];
+                        int yMatched = lastPosition[1];
+                        // int iMatched = lastPosition[2];
+                        int xLast = lastPosition[2];
+                        int yLast = lastPosition[3];
+                        //如果当前template在上一个matched template右边，就从上一个template matched的位置往右下边找
+                        if(xx>xLast){
+                            xStart=xMatched;
+                            yStart=yMatched;
+                            xEnd=result.cols;
+                            yEnd=result.rows;
+                        }
+                        //如果当前template在上一个matched template左边，就从上一个template matched的位置往下找，从0找到template matched的位置
+                        if(xx<xLast){
+                            xStart=0;
+                            yStart=yMatched;
+                            xEnd=xMatched;
+                            yEnd=result.rows;
+                        }
+                    }
+
+                    bool tempMatched =false;
+                    for (int y=yStart; y<yEnd; y++)
+                    {
+                        for (int x=xStart; x<xEnd; x++)
+                        {
+                            // Mat srcClone = src_segrgb.clone();
+                            // Rect r(x,y, w,h);
+                            // rectangle(srcClone, r, Scalar(255, 255, 255), 2, LINE_AA);
+                            // imshow("refseg", ref_segrgb);
+                            // imshow("template_rgb", srcClone);
+                            // waitKey(0);
+                            Mat src_part(src, cv::Rect(x,y,w,h));
+                            set<int>major_sem = findMajorLabel(src_part, 0.15);
+                            if(major_sem!=essential_sem){
+                                continue;
+                            }
+                            vector<int> currentP{x,y};
+                            bool overlap = nms(currentP, fineMatchedPosition, w, h);
+                            if(overlap==true){
+                                continue;
+                            }
+                            ConPro = ConPro_calculator(src_part, temp, ConProMat);
+                            if(ConPro<log(0.3)*w*h){
+                                continue;
+                            }
+                            // 先找到3个label的模板匹配，以这些label划出2个label的模板的搜索范围。
+                            //然后以匹配到的2个label的模板，来划出下一个2个label的模板的搜索范围
+                            
+                            fineMatchedNum+=1;
+                            vector<int> position{x,y,xx,yy};
+                            fineMatchedPosition.push_back(position);
+
+                            if(display==true){
+                                Rect r(x,y, w,h);
+                                Rect rr(xx,yy, w,h);
+                                rectangle(ref_segrgb, rr, Scalar(0, 0, 255), 2, LINE_AA);
+                                rectangle(src_segrgb, r, Scalar(0, 0, 255), 2, LINE_AA);
+                                imshow("ref", ref_segrgb);
+                                imshow("template", src_segrgb);
+                                waitKey(0);
+                            }
+                            tempMatched=true;
+                            break;
+                        }
+                        if(tempMatched==true){
+                            break;
+                        }
+                    }
+                }
+                end=clock();
+                t_diff=(double)(end-start)/CLOCKS_PER_SEC;
+                cout<<"time taken for fineTemplate matching: "<<t_diff<<endl;
+            }
+            
+
+            
+            vector<int> xVec;
+            vector<int> yVec;
+            vector<int> xRefVec;
+            vector<int> yRefVec;
+            // sortMatchedPoint(xVec, yVec, xRefVec, yRefVec, fineMatchedPosition);
+            int coarseMatchedNum=0;
+            vector<vector<int>> coarseMatchedPosition;
+            set<int> lastMajor_sem{0,0};
+            vector<set<int>> deadSem;
+            for(size_t i=0; i<coarseTemplates.size(); i++){
+                int xx=coarseTemplates[i][0];
+                int yy=coarseTemplates[i][1];
+                set<int> essential_sem; //stores the essential semantic labels in template, the matched template must have these semantic labels
+                for(size_t t = 2; t<coarseTemplates[i].size(); t++){
+                    essential_sem.insert(coarseTemplates[i][t]);
+                }
+
+                //如果有7个以上该label找不到，那就不要找这个label了
+                if(!deadSem.empty()){
+                    int num=count(deadSem.begin(), deadSem.end(), essential_sem);
+                    if(num>=7){
+                        continue;
+                    }
+                }
+
+                Rect r(xx,yy, w,h);
+                if(display==true){
+                    rectangle(ref_segrgb, r, Scalar(255, 255, 0), 2, LINE_AA);
+                    imshow("reference image", ref_segrgb);
+                    waitKey(0);
+                }
+                Mat temp_Mat = ref_Mat(r);
+                Mat src(src_Mat.size(),CV_8UC1);
+                src_Mat.convertTo(src, CV_8UC1);
+                Mat temp(temp_Mat.size(),CV_8UC1);
+                temp_Mat.convertTo(temp, CV_8UC1);
+                Mat result = Mat::zeros(src.rows - temp.rows +1,src.cols - temp.cols +1, CV_32FC1);
+
+                sortMatchedPoint(xVec, yVec, xRefVec, yRefVec, fineMatchedPosition);
+                int yStart=0, xStart=0, yEnd=result.rows, xEnd=result.cols;
+                //高度搜索范围
+                for(size_t t=0; t<xVec.size(); t++){
+                    //从上面的match点往下找，如果当前点比某个match点低,那它的高度搜索范围就是从上一个match点到当前match点
+                    if(yy<yRefVec[t]){
+                        //如果比第一个match点低，那高度搜索范围就是从顶边到第一个match点
+                        if(t==0){
+                            yStart=0;
+                            yEnd=yVec[t];
+                            break;
+                        }
+                        else{
+                            yStart=yVec[t-1];
+                            yEnd=yVec[t];
+                            break;
+                        }
+                    }
+                    //如果比最低match点还低，那就是最低match点到底边
+                    else if(t==xVec.size()-1){
+                        yStart=yVec[t];
+                        yEnd=result.rows;
+                        break;
+                    }
+                }
+                //宽度搜索范围
+                for(size_t t=0; t<xVec.size(); t++){
+                    //从左往右找
+                    if(xx<xRefVec[t]){
+                        //如果比第一个match点左，那宽度搜索范围就是从左边到第一个match点
+                        if(t==0){
+                            xStart=0;
+                            xEnd=xVec[t];
+                            break;
+                        }
+                        else{
+                            xStart=xVec[t-1];
+                            xEnd=xVec[t];
+                            break;
+                        }
+                    }
+                    //如果比最右match点还右，那就是最右match点到右边
+                    else if(t==xVec.size()-1){
+                        xStart=xVec[t];
+                        xEnd=result.cols;
+                        break;
+                    }
+                }
+                
+                if(essential_sem==lastMajor_sem){
+                    if(!coarseMatchedPosition.empty()){
+                        vector<int> lastMatchedP = coarseMatchedPosition[coarseMatchedPosition.size()-1];
+                        yStart=lastMatchedP[1];   
+                    }   
+                        
+                }
+
+                
+
+                //calculate ConPro for each element of result matrix
+                bool tempMatched =false;
+                for (int y=yStart; y<yEnd; y+=3)
+                {
+                    for (int x=xStart; x<xEnd; x+=3)
+                    {
+                        vector<int> currentP{x,y};
+                        // if(!coarseMatchedPosition.empty()){
+                        //     Mat srcClone = src_segrgb.clone();
+                        //     Rect rrr(x,y, w,h);
+                        //     rectangle(srcClone, rrr, Scalar(255, 255, 255), 2, LINE_AA);
+                        //     imshow("sliding window", srcClone);
+                        //     waitKey(0);
+                        // }
+                        Mat src_part(src, cv::Rect(x,y,temp.cols, temp.rows));
+                        set<int>major_sem = findMajorLabel(src_part, 0.2);
+                        if(major_sem!=essential_sem){
+                            continue;
+                        }
+                        bool overlap = nms(currentP,coarseMatchedPosition,w,h);
+                        if(overlap==true){
+                            continue;
+                        }
+                        ConPro = ConPro_calculator(src_part, temp, ConProMat);
+                        if(ConPro<log(0.3)*temp.cols*temp.rows){
+                            continue;
+                        }
+
+                        lastMajor_sem=major_sem;
+                        // 先找到3个label的模板匹配，以这些label划出2个label的模板的搜索范围。
+                        //然后以匹配到的2个label的模板，来划出下一个2个label的模板的搜索范围
+                        vector<int>position{x,y,xx,yy};
+                        bool fine=checkFineMatch(position, coarseMatchedPosition);
+
+                        coarseMatchedPosition.push_back(position);
+                        coarseMatchedNum+=1;
+                        Rect r(x,y, w,h);
+                        rectangle(src_segrgb, r, Scalar(255, 0, 0), 2, LINE_AA);
+                        Rect rr(xx,yy, w,h);
+                        rectangle(ref_segrgb, rr, Scalar(255, 0, 0), 2, LINE_AA);
+                        
+                        if(fine==true){
+                            fineMatchedPosition.push_back(position);
+                            rectangle(src_segrgb, r, Scalar(0, 0, 255), 2, LINE_AA);
+                            rectangle(ref_segrgb, rr, Scalar(0, 0, 255), 2, LINE_AA);
+                            fineMatchedNum+=1;
+                        }
+
+                        if(display==true){
+                            imshow("source image", src_segrgb);
+                            waitKey(0);
+                        }
+                        
+                        tempMatched=true;
+                        break;
+                    }
+                    if(tempMatched==true){
+                        break;
+                    }
+                }
+                if(tempMatched==false){
+                    deadSem.push_back(essential_sem);
+                    Rect rr(xx,yy, w,h);
+                    rectangle(ref_segrgb, rr, Scalar(0, 0, 0), 2, LINE_AA);
+                }
+            }
             end=clock();
             t_diff=(double)(end-start)/CLOCKS_PER_SEC;
-            cout<<"templates matched: "<<templateMatched<<"     portion:"<<matchedPortion<<"     time cost:"<<t_diff<<endl;
-
+            cout<<"fineMatched: "<<fineMatchedNum<<",  "<<"coarseMatched: "<<coarseMatchedNum<<" time taken: "<<t_diff<<endl;
         }
         break;
     }
