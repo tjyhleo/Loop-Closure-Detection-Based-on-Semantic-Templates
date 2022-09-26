@@ -1,3 +1,0 @@
-/home/jialin/Documents/VSC_Projects/TemplateMatching/build/CMakeFiles/rebuild_cache.dir
-/home/jialin/Documents/VSC_Projects/TemplateMatching/build/CMakeFiles/matchtemplate.dir
-/home/jialin/Documents/VSC_Projects/TemplateMatching/build/CMakeFiles/edit_cache.dir

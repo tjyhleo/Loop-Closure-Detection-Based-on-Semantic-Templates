@@ -314,7 +314,7 @@ int main(){
     cout<<"reading images..."<<endl;
     vector<cv::Mat> vmImages;
     // cv::String img_path = "/home/jialin/Documents/VSC_Projects/BoW_ORB/data/*.png";
-    cv::String img_path = "/media/jialin/045E58135E57FC3C/UBUNTU/Evaluation_data/voc_training/*.jpg";
+    cv::String img_path = "/media/jialin/045E58135E57FC3C/UBUNTU/Evaluation/*.jpg";
     ReadImg(vmImages, img_path);
     cout<<vmImages.size()<<endl;
 

@@ -489,36 +489,6 @@ int main(){
         ii+=1;
         
         
-        
-
-
-
-        // // there are 4 channels in imgMat, we need to extract the last 3 channels
-        // Mat chans_mat[4];
-        // split(imgMat,chans_mat);
-
-        // vector<Mat> chans_vec;
-        // chans_vec.push_back(chans_mat[1]);
-        // chans_vec.push_back(chans_mat[2]);
-        // chans_vec.push_back(chans_mat[3]);
-        // Mat merged_mat;
-        // merge(chans_vec, merged_mat);
-        // merged_mat.convertTo(merged_mat,CV_8UC3);
-        // // cout<<"merged_mat channels: "<<merged_mat.channels()<<endl;
-        // // cout<<"merged_mat size: "<<merged_mat.size<<endl;
-        // // cout<<"merged_mat type"<<merged_mat.type()<<endl;
-
-        // // minMaxLoc(merged_mat, &val_min, &val_max,NULL,NULL);
-        // // cout<<"val_min: "<<val_min<<endl;
-        // // cout<<"val_max: "<<val_max<<endl;
-
-        // // display image
-        // imshow("frame " + frameId, merged_mat);
-        // waitKey(0);
-
-    
-
-        
     }
 
     ////////////////////////////////////////////////////////////////

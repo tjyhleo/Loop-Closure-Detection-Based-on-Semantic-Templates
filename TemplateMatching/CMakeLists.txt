@@ -1,7 +1,0 @@
-cmake_minimum_required(VERSION 3.0)
-project(matchtemplate)
-# set(CMAKE_CXX_FLAGS "{CMAKE_CXX_FLAGS} -std=c++11 -03")
-find_package(OpenCV REQUIRED)
-include_directories(${OpenCV_INCLUDE_DIR})
-add_executable(matchtemplate TM_MI.cpp)
-target_link_libraries(matchtemplate ${OpenCV_LIBS})

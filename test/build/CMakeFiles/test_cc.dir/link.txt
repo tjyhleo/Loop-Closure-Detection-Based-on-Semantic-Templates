@@ -1,1 +1,0 @@
-/usr/bin/g++  -g  -rdynamic CMakeFiles/test_cc.dir/test.cc.o  -o test_cc 
